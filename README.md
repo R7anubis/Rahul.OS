@@ -1,1 +1,371 @@
-# Rahul.OS
+# RAHUL.OS
+
+A personal website for **Rahul Raj** — data science, AI, game technology and
+embedded systems. Built as a bespoke interface rather than a template:
+monochrome industrial design, dot-matrix textures, editorial typography and
+interaction that earns its place on the page.
+
+- **Live identity screen** with the real portrait, editorial crop and a restrained treatment
+- **Four work entries**: SameFace, SCAMS, CARLA / ROS 2 and a Rockstar Games QA case study
+- **SameFace documented from its research paper**, with an interactive architecture
+  diagram that separates documented design, in-development work and proposals
+- **Real project filtering**, a **Ctrl/⌘ + K command palette**, an **interactive timeline**
+  and a keyboard-accessible **interest map**
+- **Dark and light themes**, persisted, following the OS on a first visit
+- **A precision pointer language** — custom cursor, click ripples and a pointer-reactive
+  grid — that is capability-gated and never replaces the native cursor unsafely
+- **Reduced-motion support**, plus an explicit motion toggle that changes real behaviour
+- No backend, no analytics, no cookies, no trackers
+
+> *Note on the pointer layer:* the design is deliberate and restrained. The cursor is a
+> 4px dot with a thin ring, the ripples are one accent hairline ring per click, and the
+> reactive grid lifts the existing dot texture slightly around the pointer. Nothing
+> trails, nothing pulses while idle, and the whole layer disappears on touch, pen or
+> reduced motion.
+
+---
+
+## Quick start
+
+```bash
+npm install
+npm run dev          # → http://localhost:5173
+```
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Vite dev server with HMR, bound to `0.0.0.0:5173` |
+| `npm run build` | Type-check (`tsc -b`) then build to `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run typecheck` | TypeScript only, no emit |
+| `npm run smoke` | Renders every route and asserts links, a11y and content rules (128 checks) |
+| `npm run assets:images` | Regenerate every image from `assets-src/portrait-source.jpeg` |
+
+Node 20+ is required (developed on Node 22).
+
+---
+
+## Design system
+
+Everything visual is driven by `src/styles/tokens.css` — colour, type scale,
+spacing, borders, motion durations and layer order. Theming is a single
+attribute on `<html>`:
+
+```html
+<html data-theme="dark" data-motion="on">
+```
+
+- `data-theme` switches `dark` (default) / `light`. Both palettes were checked
+  for contrast and clear **WCAG AA** at every text/surface pairing
+  (lowest ratio 4.69:1; body copy is 17.7:1 in dark, 17.0:1 in light).
+- `data-motion="off"` collapses the motion tokens to ~0ms, so the motion toggle
+  changes genuine animation behaviour rather than pretending to.
+
+An inline script in `index.html` applies the stored (or system) theme before
+first paint, so there is no flash of the wrong palette.
+
+Typography is **Geist Sans** and **Geist Mono**, self-hosted as variable
+`woff2` files in `public/fonts/` under the SIL Open Font License 1.1
+(licence included at `public/fonts/GEIST-LICENSE.txt`). Nothing is fetched from
+a third-party CDN, so the site renders identically offline.
+
+---
+
+## Structure
+
+```
+src/
+  components/            interface components
+    PointerLayer.tsx     capability-gated cursor, ripples, crosshair
+    PointerGrid.tsx      low-contrast pointer-reactive dot field
+    DiagramExplorer.tsx  interactive architecture diagram (stages + readout)
+    figures/             original SVG project illustrations
+  data/                  ALL content, as typed data — edit here, not in the UI
+    profile.ts           verified identity, contact links, studies
+    projects.ts          the four work entries + honesty metadata
+    experience.ts        employment timeline (dates verified per entry)
+    education.ts         degrees and short courses
+    skills.ts            skill clusters
+    interests.ts         interest-map nodes and edges
+    sections.ts          canonical section list (nav, palette, footer, 404)
+  hooks/                 theme, routing, motion, pointer capability, reveals,
+                         scroll spy, clipboard, meta
+  lib/assets.ts          base-path-aware public asset URLs
+  styles/                tokens.css · global.css · components.css
+  router + App.tsx + main.tsx
+public/
+  fonts/                 Geist woff2 + OFL licence
+  images/                portrait crops, duotone treatment, OG card
+  favicon.svg · avatar.png · robots.txt · sitemap.xml
+scripts/
+  prepare-images.sh      ImageMagick pipeline for every shipped image
+  smoke-test.mjs         route/render/link/a11y/content assertions
+assets-src/              supplied portrait (résumé PDF is git-ignored — see below)
+```
+
+### Content lives in data, not in components
+
+Every entry on the site is a typed object. Adding a fifth project is a matter
+of appending to `src/data/projects.ts` and adding a figure component — no
+component logic changes, and the filter bar, command palette, 404 page and
+cross-links pick it up automatically.
+
+### Routing
+
+A dependency-free hash router (`src/hooks/useHashRoute.ts`):
+
+| URL | View |
+| --- | --- |
+| `/` | Home |
+| `/#projects` | Home, scrolled to a section |
+| `/#/projects/sameface` | Project detail page |
+| anything else | Not-found page listing every real destination |
+
+Hash routing keeps deep links working on **any** static host with no server
+rewrites and no 404 fallback configuration. `#top` and `#main` are treated as
+home targets — both are regression-tested in the smoke suite.
+
+---
+
+## Images
+
+All imagery is local and derived from the single supplied portrait by
+`scripts/prepare-images.sh` (requires ImageMagick):
+
+```bash
+npm run assets:images
+```
+
+It produces responsive 640/960/1280 crops, a duotone treatment used in the dark
+hero, a 512px avatar and a 1200×630 Open Graph card. Editorial framing is
+applied in CSS via `object-position`, so the JPEGs keep their native aspect and
+full resolution for every breakpoint.
+
+**Project visuals are original SVG components** in `src/components/figures/` —
+there are no project screenshots anywhere in this repository, no remote image
+URLs, and nothing that could break or 404.
+
+---
+
+## The pointer layer, in detail
+
+Four rules govern it, all enforced in `src/hooks/usePointerCapability.ts`:
+
+1. **Capability gating.** It renders only when the device reports
+   `(hover: hover) and (pointer: fine)`, the visitor has not requested reduced
+   motion (OS setting *or* the site's motion toggle), and no touch or pen contact
+   has been seen. Any of those failing means the layer is never mounted.
+2. **Never cursor-less.** `html[data-cursor="custom"]` — the only thing that sets
+   `cursor: none` — is written by the layer itself and deleted on unmount or when
+   capability drops. So the native cursor is hidden *only* while a replacement is
+   on screen, and a reload with JavaScript disabled simply shows the normal cursor.
+3. **Selection is preserved.** Over text the layer draws an I-beam bar instead of a
+   ring, and `cursor: none` never applies to form fields or `contenteditable`
+   because the component short-circuits to the text state first.
+4. **No idle animation.** Every write happens inside one `requestAnimationFrame`
+   loop that only runs on pointer movement. There is no loop, no drift and no
+   trail when the pointer is still.
+
+Keyboard users are unaffected: focus rings, tab order and the skip link are
+untouched, and every interaction the pointer layer decorates also exists as a real
+button (the diagram stages, the interest map, the timeline milestones).
+
+## Accessibility
+
+- Semantic landmarks, one `<h1>` per view, no skipped heading levels (tested)
+- The custom cursor is capability-gated and always reversible (tested for coarse
+  pointer, reduced motion and unmount)
+- Section reveals can never strand content: elements are visible by default, only
+  JavaScript marks them pending, and a 1.5s failsafe reveals everything (tested)
+- Visible focus rings on every interactive element; skip-to-content link
+- Dialogs with `aria-modal`, a focus trap, Escape to close and focus restoration
+- Timeline milestones are real buttons with `aria-expanded` / `aria-controls`
+  and arrow-key navigation; the interest map has a permanent list alternative
+- `prefers-reduced-motion` honoured, plus an explicit, functional motion toggle
+- Every image has an `alt` attribute and intrinsic dimensions (no layout shift)
+- Status is never communicated by colour alone — chips carry text labels
+
+## Performance
+
+Production build after this refinement: **~56 kB CSS (10.3 kB gzipped)** and
+**~349 kB JS (106.7 kB gzipped)**, of which React is the bulk. The pointer layer
+adds roughly 8 kB of CSS and 2 kB of JS — there is no animation library, and
+motion remains CSS transitions plus two tiny `requestAnimationFrame` loops that
+only run under an active pointer. Fonts are two preloaded variable files
+(~140 kB for both families).
+
+---
+
+## Content honesty
+
+This site is deliberately conservative about what it claims.
+
+- Every work entry carries a written **scope disclaimer** rendered on its
+  detail page: SameFace is a student project, SCAMS is an **academic proposal**
+  and not deployed, CARLA / ROS 2 is study and exploration, and the Rockstar
+  entry is **professional experience — not a product Rahul owns**.
+- The **SameFace case study is sourced from its research paper** (Rahul Raj,
+  Presidency University), which is cited on the page. Three claims are handled
+  with particular care:
+  - ML Kit's Face Detection API returns bounding boxes, landmarks and contours —
+    it does **not** return face embeddings and contains no comparison function.
+    The page and diagram say so explicitly.
+  - A similarity judgement therefore needs a separate method (landmark geometry
+    or an embedding model). The paper describes the custom similarity algorithm
+    as planned for a future implementation, so it is labelled **proposed work**.
+  - The paper's evaluation section is prospective. No accuracy figures,
+    evaluation results, trained models or user testing exist in it, so none are
+    displayed. The tests enforce this with regex guards.
+- No accuracy figures, user counts, benchmarks, grades or quantified
+  achievements are invented. The Wylo internship dates are not on the supplied
+  résumé, so the timeline says so instead of estimating.
+- The Rockstar entry describes only Rahul's own responsibilities and contains no
+  confidential tooling, process detail or unreleased content, and implies no
+  employer endorsement.
+- The Acti keyboard appears only as an interest and UX exploration, never as a
+  project or achievement.
+- `npm run smoke` enforces these rules: it fails the build if accuracy
+  percentages, deployment claims or a misrepresented Acti keyboard appear in the
+  data layer, and it checks the SameFace page for five further fabricated-metric
+  patterns (accuracy percentages, "achieved accuracy", "trained on N", user
+  counts, "tested with N").
+
+RAHUL.OS is a personal site. It is not affiliated with, endorsed by, or an
+implementation of any product, company or design system it refers to —
+including Nothing and any employer named on the page.
+
+---
+
+## Testing
+
+```bash
+npm run smoke
+```
+
+This does not test mocks. It boots the **real Vite pipeline**, renders the real
+`App` component, and checks 128 assertions:
+
+1. **Static render, per route** — heading structure, every in-page anchor
+   resolving to a real element (and not to the 404 view), no dead `href="#"`,
+   image `alt` text and dimensions, local-only image sources, external links
+   carrying `target="_blank"` + `rel="noopener"`, `mailto:` encoding, dynamic
+   footer year, and no `undefined` / `NaN` / `[object Object]` in the markup.
+2. **Interaction, in jsdom** — project filtering and restoration, theme toggle
+   plus persistence, palette open via ⌘/Ctrl + K, search, arrow-key selection
+   and Escape, timeline expansion with keyboard navigation, interest-map
+   selection, copy-email feedback, and the compact mobile menu.
+3. **SameFace case study** — the diagram renders with six selectable stages, the
+   research paper is cited as the source, ML Kit's limits are stated, the
+   proposed similarity layer is labelled, and five fabricated-metric patterns
+   are absent.
+4. **Education dates** — Presidency University shows the confirmed 2019 – 2023
+   range and no entry reports an unstated period.
+5. **Pointer capability gating** — with a coarse pointer, with reduced motion,
+   and with a fine pointer: the layer mounts only in the last case, and unmounting
+   always restores the native cursor.
+6. **Reveal fallback** — after the failsafe window, no element is left hidden.
+7. **Content guards** — the honesty rules described above.
+
+While building this, the suite caught two real bugs (the `#top` wordmark and the
+`#main` skip link both routing to the not-found view), which are now
+regression-tested.
+
+The five SVG figures were additionally rasterised to PNG and visually inspected
+during development (before and after each change) — geometry was corrected where
+labels, blocks, captions or connectors overflowed the viewBox, collided with each
+other, or crossed a group they should route around. They are authored to hold up
+from a ~350px project card through to a ~700px detail panel.
+
+> **Not verified:** no real browser was available in the build environment, so
+> the site has not been manually viewed in Chrome/Safari/Firefox, and no
+> Lighthouse, axe or screen-reader run has been performed. Layout was reasoned
+> through per breakpoint (see below) and validated through render assertions
+> rather than visual inspection at each width.
+
+### What still needs manual browser testing
+
+The automated suite runs in jsdom, which cannot see pixels or paint. These need a
+real browser before publishing:
+
+1. **Pointer layer feel** — that the dot/ring tracks without perceptible lag, that
+   the ring does not jitter at the boundary between an action and text, and that
+   the ripple size reads as restrained at your DPI.
+2. **Pointer-grid sheen intensity** — confirm the reactive grid over the hero and
+   contact sections is subtle enough. It is `opacity: 0.5` on the dot mask; lower
+   it if your monitor makes it too present.
+3. **`cursor: none` verification** — hover the hero, an input, a link and the
+   command palette and confirm a cursor is always visible. Cross-check in Firefox
+   and Safari, where `matchMedia` reporting for `(hover: hover) and (pointer: fine)`
+   differs from Chrome.
+4. **Theme sweep** — confirm the one-shot accent hairline reads as a considered
+   acknowledgement rather than a glitch, in both themes.
+5. **Reveal timing** — scroll the full page and confirm sections reveal as they
+   enter without feeling sluggish or like content is playing catch-up.
+6. **Responsive widths** — 1600, 1280, 820 and 375px, plus 360px as the floor.
+   The diagram explorer stacks below 1180px; check the figure stays legible there.
+7. **Hybrid devices** — a touchscreen laptop should start with no custom cursor
+   after the first touch, and restore it if you return to the trackpad.
+8. **Screen reader pass** — VoiceOver or NVDA over the diagram explorer, the
+   interest map and the timeline.
+
+Responsive targets designed for: **≥1600px** large desktop, **1280–1440px**
+laptop, **768–1023px** tablet, **≤767px** mobile (with 360px as the floor). The
+navigation collapses to the compact sheet below 1024px; the interest-map canvas
+hands off to its list alternative below 768px.
+
+---
+
+## Deployment
+
+The build is fully static — `dist/` can be served by anything.
+
+### Netlify
+
+```toml
+# netlify.toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+```
+
+### Vercel
+
+Framework preset **Vite**; build `npm run build`, output `dist`.
+
+### GitHub Pages
+
+Set the base path to the repository name so assets resolve under the
+subdirectory:
+
+```bash
+VITE_BASE=/Rahul.OS/ npm run build
+npx gh-pages -d dist        # or push dist/ to the gh-pages branch
+```
+
+`vite.config.ts` reads `VITE_BASE` (default `/`), and `src/lib/assets.ts`
+resolves public assets against it — so the same source builds correctly at a
+domain root or under a subdirectory.
+
+### Custom domain
+
+Update the canonical URL and Open Graph URLs in `index.html` (currently
+`https://rahulraj.dev/`) and the `Sitemap` line in `public/robots.txt`.
+
+---
+
+## Private files
+
+`assets-src/` holds the source portrait used by the image pipeline. The
+supplied résumé PDF is intentionally **excluded from version control**
+(see `.gitignore`) because it contains a personal phone number that is not
+published on the site — the verified details extracted from it live in
+`src/data/`, and only the public email and social links are exposed in the UI.
+
+## Licence and credits
+
+- Source: © Rahul Raj.
+- **Geist** by Vercel / basement.studio — SIL Open Font License 1.1
+  (`public/fonts/GEIST-LICENSE.txt`).
+- Icons: [Lucide](https://lucide.dev) (ISC).
+- Every diagram, texture and pattern in this repository was authored for this
+  site.

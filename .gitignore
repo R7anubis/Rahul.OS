@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# local env / editor
+.env
+.env.*
+!.env.example
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.local
+*.log
+
+# source assets: the portrait is needed to regenerate images, but the supplied
+# documents are not published with the site. The résumé PDF in particular
+# contains a private phone number.
+assets-src/*.pdf
+
+# test + tooling caches
+coverage/
+.vite/
+node_modules/.vite/
+
+# typescript incremental build info
+*.tsbuildinfo

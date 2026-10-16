@@ -1,0 +1,186 @@
+/* ==========================================================================
+   RAHUL.OS — design tokens
+   A single source of truth for colour, type, space, borders and motion.
+   Dark is the default; [data-theme="light"] is a genuinely usable alternative.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- surfaces -------------------------------------------------------- */
+  --bg: #08080a;
+  --bg-raised: #0c0c0e;
+  --bg-panel: #0f0f12;
+  --bg-inset: #141418;
+  --bg-invert: #f2f1ed;
+
+  /* ---- ink ------------------------------------------------------------- */
+  --text: #f2f1ed;
+  --text-dim: #a6a6ac;
+  --text-faint: #7e7e86;
+  --text-invert: #08080a;
+
+  /* ---- lines ----------------------------------------------------------- */
+  --line: rgba(255, 255, 255, 0.1);
+  --line-soft: rgba(255, 255, 255, 0.055);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --grid-line: rgba(255, 255, 255, 0.038);
+  --dot: rgba(255, 255, 255, 0.16);
+
+  /* ---- accents --------------------------------------------------------- */
+  --accent: #ff4530;
+  --accent-hover: #ff6a58;
+  --accent-ink: #0a0a0b;
+  --accent-soft: rgba(255, 69, 48, 0.12);
+  --accent-line: rgba(255, 69, 48, 0.45);
+  --ok: #5fd39b;
+  --ok-soft: rgba(95, 211, 155, 0.12);
+  --focus: #ff8f7f;
+
+  /* ---- type ------------------------------------------------------------ */
+  --font-sans: 'Geist Sans', 'Geist', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+
+  /* Sized so a 9-character wordmark never overflows its grid column */
+  --fs-display: clamp(2.9rem, 8.6vw, 8rem);
+  --fs-h2: clamp(1.85rem, 4.4vw, 3.35rem);
+  --fs-h3: clamp(1.2rem, 2vw, 1.6rem);
+  --fs-h4: clamp(1.02rem, 1.35vw, 1.16rem);
+  --fs-lead: clamp(1.02rem, 1.5vw, 1.28rem);
+  --fs-body: clamp(0.95rem, 1.05vw, 1.05rem);
+  --fs-small: 0.85rem;
+  --fs-mono: 0.7rem;
+  --fs-mono-lg: 0.78rem;
+
+  --lh-tight: 0.92;
+  --lh-snug: 1.14;
+  --lh-body: 1.62;
+  --tracking-label: 0.16em;
+  --tracking-tight: -0.03em;
+  --tracking-display: -0.045em;
+
+  /* ---- space ----------------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9: 96px;
+  --sp-10: 128px;
+
+  --gutter: clamp(1.15rem, 4.2vw, 4rem);
+  --shell: 1560px;
+  --section-y: clamp(4.5rem, 9vw, 9rem);
+  --measure: 62ch;
+
+  /* ---- form ------------------------------------------------------------ */
+  --radius-1: 2px;
+  --radius-2: 4px;
+  --radius-pill: 999px;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-pop: 0 24px 70px -28px rgba(0, 0, 0, 0.9);
+
+  /* ---- motion ---------------------------------------------------------- */
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 340ms;
+  --dur-slow: 1400ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- layers ---------------------------------------------------------- */
+  --z-grid: 0;
+  --z-base: 1;
+  --z-header: 40;
+  --z-dialog: 90;
+  --z-skip: 100;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f4f2ee;
+  --bg-raised: #fbfaf7;
+  --bg-panel: #ffffff;
+  --bg-inset: #eceae4;
+  --bg-invert: #101012;
+
+  --text: #101012;
+  --text-dim: #56565e;
+  /* Darkened from #6b6b74 so faint labels clear 4.5:1 on the inset surface
+     too (was 4.39:1 on --bg-inset, now 4.66:1). */
+  --text-faint: #67676f;
+  --text-invert: #f7f6f2;
+
+  --line: rgba(16, 16, 18, 0.14);
+  --line-soft: rgba(16, 16, 18, 0.07);
+  --line-strong: rgba(16, 16, 18, 0.32);
+  --grid-line: rgba(16, 16, 18, 0.045);
+  --dot: rgba(16, 16, 18, 0.22);
+
+  /* Slightly deeper than #cf2b12 so accent text clears 4.5:1 on every light
+     surface including --bg-inset (was 4.36:1, now 4.72:1). */
+  --accent: #c62710;
+  --accent-hover: #a02009;
+  --accent-ink: #fffaf8;
+  --accent-soft: rgba(198, 39, 16, 0.09);
+  --accent-line: rgba(198, 39, 16, 0.42);
+  --ok: #176f4a;
+  --ok-soft: rgba(23, 111, 74, 0.1);
+  --focus: #a82209;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --shadow-pop: 0 24px 60px -30px rgba(24, 20, 16, 0.35);
+}
+
+/* Motion off: mirrors prefers-reduced-motion, driven by the user's choice. */
+[data-motion='off'] {
+  --dur-1: 1ms;
+  --dur-2: 1ms;
+  --dur-3: 1ms;
+  --dur-slow: 1ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 1ms;
+    --dur-2: 1ms;
+    --dur-3: 1ms;
+    --dur-slow: 1ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Pointer layer + reveal tokens
+   The custom cursor only ever renders when html[data-cursor="custom"] is set
+   by the capability-gated hook, so these values are inert until then.
+   --------------------------------------------------------------------------- */
+:root {
+  --cursor-dot: 4px;
+  --cursor-ring: 22px;
+  --cursor-ring-action: 34px;
+  --cursor-hairline: rgba(255, 255, 255, 0.16);
+  --reveal-shift: 12px;
+  --reveal-dur: 420ms;
+}
+
+[data-theme='light'] {
+  --cursor-hairline: rgba(16, 16, 18, 0.2);
+}
+
+[data-motion='off'] {
+  --reveal-dur: 1ms;
+  --reveal-shift: 0px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --reveal-dur: 1ms;
+    --reveal-shift: 0px;
+  }
+}
