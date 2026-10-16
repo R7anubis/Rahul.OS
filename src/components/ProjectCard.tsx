@@ -12,7 +12,12 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, index, onOpen }: ProjectCardProps) {
   return (
-    <article className={`project-card card-enter${project.wide ? ' project-card--wide' : ''}`}>
+    <article
+      className={`project-card card-enter${project.wide ? ' project-card--wide' : ''}`}
+      // Stagger index for the filter transition; the key above remounts cards on
+      // filter change so the animation replays for the new result set.
+      style={{ '--i': index } as React.CSSProperties}
+    >
       <div className="project-card__figure">
         <span className="project-card__index" aria-hidden="true">
           {String(index + 1).padStart(2, '0')}

@@ -16,8 +16,9 @@ dist-ssr/
 *.local
 *.log
 
-# source assets: the portrait is needed to regenerate images, but the résumé
-# PDF contains a private phone number and must not be published.
+# source assets: the portrait is needed to regenerate images, but the supplied
+# documents are not published with the site. The résumé PDF in particular
+# contains a private phone number.
 assets-src/*.pdf
 
 # test + tooling caches

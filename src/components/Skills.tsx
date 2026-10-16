@@ -19,7 +19,7 @@ export function Skills() {
           }
         />
 
-        <div className="clusters">
+        <div className="clusters" data-reveal>
           {skillClusters.map((cluster) => (
             <article className="cluster" key={cluster.id}>
               <div className="cluster__head">

@@ -245,6 +245,86 @@ for (const project of projects) {
   )
 }
 
+section('SameFace case study (research paper source)')
+
+{
+  const sameface = render('#/projects/sameface')
+  const doc = sameface.container
+  const text = sameface.html
+
+  ok(doc.querySelector('.diagram') !== null, 'interactive architecture diagram renders')
+  ok(
+    doc.querySelectorAll('.diagram__stage').length === 6,
+    'diagram exposes six selectable stages',
+    `${doc.querySelectorAll('.diagram__stage').length}`,
+  )
+  ok(
+    doc.querySelector('.diagram__stage')?.getAttribute('aria-pressed') === 'true',
+    'diagram has a default selected stage',
+  )
+  ok(
+    (doc.querySelector('.diagram__readout-text')?.textContent ?? '').length > 40,
+    'diagram readout describes the selected stage',
+  )
+  ok(
+    doc.querySelector('.callout--neutral') !== null &&
+      /research paper/i.test(doc.querySelector('.callout--neutral')?.textContent ?? ''),
+    'the research paper is cited as the primary source',
+  )
+
+  // The specific claim the brief asks us to be careful about.
+  ok(
+    /NO EMBEDDINGS RETURNED/i.test(text) && /NO SIMILARITY SCORING/i.test(text),
+    'states that ML Kit returns no embeddings and no similarity scoring',
+  )
+  ok(
+    /separate method is required|separate similarity method|separate method/i.test(text),
+    'explains that a separate similarity method is needed',
+  )
+  ok(
+    /PROPOSED/i.test(text) && /future implementation/i.test(text),
+    'marks the similarity algorithm as proposed work',
+  )
+  ok(
+    /Firebase Authentication|OTP/i.test(text),
+    'documents the Firebase authentication element',
+  )
+  ok(
+    /Kotlin/i.test(text) && /Java/i.test(text) && /Android/i.test(text),
+    'documents the Kotlin/Java Android context',
+  )
+  ok(
+    /Documented design/.test(text) && /Proposed or future work/.test(text),
+    'separates documented design from proposed work',
+  )
+  // No fabricated evaluation results anywhere in the SameFace copy.
+  const fabricated = [
+    /\b\d{1,3}(\.\d+)?%\s*(accuracy|match|precision|recall)/i,
+    /achieved\s+(?:an\s+)?accuracy/i,
+    /\btrained\s+on\s+\d+/i,
+    /\b\d+\s+(?:users|participants|test subjects|beta testers)\b/i,
+    /\btested\s+with\s+\d+/i,
+  ]
+  for (const pattern of fabricated) {
+    ok(!pattern.test(text), `no fabricated metric: ${pattern}`)
+  }
+}
+
+section('Education dates')
+
+{
+  const home2 = render('')
+  const educationSection = home2.container.querySelector('#education')
+  ok(
+    educationSection?.textContent.includes('2019 – 2023'),
+    'Presidency University shows the confirmed 2019 – 2023 range',
+  )
+  ok(
+    !educationSection?.textContent.includes('Period not stated'),
+    'no education entry still reports an unstated period',
+  )
+}
+
 section('Not found page')
 
 const missing = render('#/projects/does-not-exist')
@@ -310,7 +390,7 @@ const key = async (target, keyName, init = {}) => {
 }
 
 {
-  const { host } = await mount()
+  const { host, root } = await mount()
 
   // --- project filter ---
   const filterButtons = [...host.querySelectorAll('.filter')]
@@ -422,6 +502,39 @@ const key = async (target, keyName, init = {}) => {
     'selected interest links to real work',
   )
 
+  // --- interactive architecture diagram (SameFace detail page) ---
+  {
+    const beforeRoute = window.location.hash
+    await act(async () => {
+      window.location.hash = '#/projects/sameface'
+      window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+    })
+
+    const stages = [...host.querySelectorAll('.diagram__stage')]
+    ok(stages.length === 6, 'detail page exposes the six diagram stages')
+
+    await click(stages[4])
+    ok(
+      stages[4]?.getAttribute('aria-pressed') === 'true',
+      'selecting a stage marks it pressed',
+    )
+    ok(
+      /separate ML similarity algorithm|planned for a future implementation/i.test(
+        host.querySelector('.diagram__readout-text')?.textContent ?? '',
+      ),
+      'the proposed stage explains that the algorithm is planned',
+    )
+    ok(
+      host.querySelector('.fig [data-stage="similarity"]')?.getAttribute('data-active') === 'true',
+      'the figure highlights the selected stage',
+    )
+
+    await act(async () => {
+      window.location.hash = beforeRoute
+      window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+    })
+  }
+
   // --- copy email ---
   const copyButton = [...host.querySelectorAll('button')].find((button) =>
     /copy email/i.test(button.textContent ?? ''),
@@ -441,6 +554,14 @@ const key = async (target, keyName, init = {}) => {
   )
   await click(menuToggle)
   ok(host.querySelector('#mobile-nav[hidden]') !== null, 'compact mobile navigation closes')
+
+  await act(async () => {
+    root.unmount()
+  })
+  ok(
+    document.documentElement.dataset.cursor === undefined,
+    'unmounting the app hands the native cursor back',
+  )
 }
 
 await vite.close()
@@ -498,6 +619,120 @@ ok(
   experience.some((entry) => entry.org === 'Rockstar Games India' && entry.dates === 'Sep 2025 – Jun 2026'),
   'Rockstar dates match the résumé',
 )
+
+section('Pointer layer capability gating')
+
+{
+  const originalMatchMedia = window.matchMedia
+
+  const stub = ({ fine, reduced }) => (query) => ({
+    matches: query.includes('prefers-reduced-motion')
+      ? reduced
+      : query.includes('pointer: fine')
+        ? fine
+        : true,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })
+
+  const mountFresh = async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    await act(async () => {
+      root.render(React.createElement(App))
+    })
+    return { host, root }
+  }
+
+  // Touch / coarse pointer.
+  window.matchMedia = stub({ fine: false, reduced: false })
+  const coarse = await mountFresh()
+  ok(!coarse.host.querySelector('.pointer-layer'), 'coarse pointer: no custom cursor layer is mounted')
+  ok(
+    document.documentElement.dataset.cursor === undefined,
+    'coarse pointer: native cursor is left untouched',
+  )
+  await act(async () => {
+    coarse.root.unmount()
+  })
+
+  // Fine pointer but the visitor has asked for reduced motion.
+  window.matchMedia = stub({ fine: true, reduced: true })
+  const reduced = await mountFresh()
+  ok(
+    !reduced.host.querySelector('.pointer-layer'),
+    'reduced motion: custom cursor is disabled',
+  )
+  ok(
+    document.documentElement.dataset.cursor === undefined,
+    'reduced motion: native cursor is left untouched',
+  )
+  await act(async () => {
+    reduced.root.unmount()
+  })
+
+  // Fine pointer, motion allowed.
+  window.matchMedia = stub({ fine: true, reduced: false })
+  const fine = await mountFresh()
+  ok(fine.host.querySelector('.pointer-layer') !== null, 'fine pointer + motion on: layer mounts')
+  ok(
+    document.documentElement.dataset.cursor === 'custom',
+    'fine pointer + motion on: cursor handed to the custom layer',
+  )
+  await act(async () => {
+    fine.root.unmount()
+  })
+  ok(
+    document.documentElement.dataset.cursor === undefined,
+    'unmount restores the native cursor',
+  )
+
+  window.matchMedia = originalMatchMedia
+}
+
+section('Reveal fallback')
+
+{
+  // Content must never be permanently hidden by the reveal effect.
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  await act(async () => {
+    root.render(React.createElement(App))
+  })
+
+  const revealsAtMount = host.querySelectorAll('[data-reveal]').length
+  ok(revealsAtMount > 0, `reveal targets are present (${revealsAtMount})`)
+
+  // The hook's failsafe resolves everything within 1.5s even if the observer
+  // never reports an intersection (as in jsdom).
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1700))
+  })
+
+  const stillPending = host.querySelectorAll('[data-reveal="pending"]').length
+  ok(
+    stillPending === 0,
+    'after the failsafe window no element is left hidden',
+    `${stillPending} still pending`,
+  )
+
+  // Every reveal target also has a stable resting state.
+  ok(
+    host.querySelectorAll('[data-reveal="in"]').length === revealsAtMount,
+    'every reveal target resolves to the visible state',
+  )
+
+  await act(async () => {
+    root.unmount()
+  })
+}
 
 /* ------------------------------------------------------------------ */
 console.log(

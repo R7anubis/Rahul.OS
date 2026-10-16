@@ -80,10 +80,10 @@ export function ProjectGrid({ onOpenProject }: ProjectGridProps) {
           </span>
         </div>
 
-        <div className="project-grid">
+        <div className="project-grid" data-reveal>
           {visible.map((project, index) => (
             <ProjectCard
-              key={project.slug}
+              key={`${filter}-${project.slug}`}
               project={project}
               index={index}
               onOpen={onOpenProject}

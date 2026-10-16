@@ -78,6 +78,7 @@ export function SameFaceFigure() {
       <path className="fig-line" d="M216,296 C232,310 262,310 278,296" fill="none" />
 
       {/* measured relationships */}
+      <g data-part="Measured relationships">
       {MEASURES.map(([a, b], index) => {
         const from = LANDMARKS[a]
         const to = LANDMARKS[b]
@@ -96,7 +97,10 @@ export function SameFaceFigure() {
         )
       })}
 
+      </g>
+
       {/* landmark points + callouts */}
+      <g data-part="Landmark points">
       {LANDMARKS.map((point, index) => (
         <circle
           key={`point-${index}`}
@@ -134,6 +138,7 @@ export function SameFaceFigure() {
       <text className="fig-t fig-ink-faint" x="108" y="436" fontSize="12">
         ML KIT · FACE + LANDMARK DETECTION
       </text>
+      </g>
 
       {/* ---- comparison stage ---- */}
       <line className="fig-line" x1="432" y1="78" x2="432" y2="420" />
@@ -163,6 +168,7 @@ export function SameFaceFigure() {
 
       <line className="fig-line-strong" x1="556" y1="228" x2="556" y2="242" markerEnd="url(#sf-arrow)" />
 
+      <g data-part="Comparison stage">
       <rect className="fig-line" x="466" y="250" width="300" height="86" fill="none" />
       <text className="fig-t fig-ink-dim" x="480" y="274" fontSize="13">
         LANDMARK SET COMPARISON
@@ -184,6 +190,7 @@ export function SameFaceFigure() {
       <text className="fig-t fig-ink-faint" x="466" y="436" fontSize="12">
         RESULT · NOT IDENTITY VERIFICATION
       </text>
+      </g>
     </svg>
   )
 }

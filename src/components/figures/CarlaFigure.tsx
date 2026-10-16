@@ -43,7 +43,7 @@ export function CarlaFigure() {
       </text>
 
       {BLOCKS.map((block, index) => (
-        <g key={block.title}>
+        <g key={block.title} data-part={block.title}>
           <rect className="fig-panel fig-line-strong" x={block.x} y={block.y} width={block.w} height={block.h} fill="var(--bg-panel)" />
           <rect className="fig-line-strong" x={block.x} y={block.y} width={block.w} height="3" />
           <text className="fig-t fig-ink-faint" x={block.x + 12} y={block.y + 22} fontSize="11">
@@ -76,7 +76,7 @@ export function CarlaFigure() {
       />
 
       {CONTROLLERS.map((block) => (
-        <g key={block.title}>
+        <g key={block.title} data-part={block.title}>
           <rect className="fig-panel fig-line-strong" x={block.x} y={block.y} width={block.w} height={block.h} fill="var(--bg-panel)" />
           <text className="fig-t fig-ink" x={block.x + 12} y={block.y + 26} fontSize="14">
             {block.title}
@@ -90,6 +90,7 @@ export function CarlaFigure() {
       <path className="fig-line-strong" d="M612,270 L612,366 L612,380" fill="none" markerEnd="url(#ca-arrow)" />
 
       {/* vehicle command block */}
+      <g data-part="Vehicle control">
       <rect className="fig-panel fig-accent" x="36" y="208" width="240" height="222" fill="var(--bg-panel)" strokeWidth="1.4" />
       <text className="fig-t fig-ink-faint" x="52" y="234" fontSize="11">
         ACTUATION
@@ -112,6 +113,7 @@ export function CarlaFigure() {
       <text className="fig-t fig-ink-faint" x="62" y="402" fontSize="11">
         ROUTE WAYPOINTS
       </text>
+      </g>
 
       {/* feedback path — the loop closes back at the vehicle state node */}
       <path
@@ -128,6 +130,7 @@ export function CarlaFigure() {
 
       {/* inset plot: error response, unnumbered axes.
           Deliberately no tick values — no benchmark figures are claimed. */}
+      <g data-part="Error response">
       <rect className="fig-line" x="300" y="208" width="240" height="222" fill="none" />
       <text className="fig-t fig-ink-faint" x="316" y="232" fontSize="11">
         ERROR RESPONSE · ILLUSTRATIVE
@@ -160,6 +163,7 @@ export function CarlaFigure() {
       <text className="fig-s fig-ink-faint" x="316" y="357" fontSize="12">
         than a single fast response.
       </text>
+      </g>
     </svg>
   )
 }

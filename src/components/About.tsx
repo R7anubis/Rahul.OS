@@ -19,7 +19,7 @@ export function About() {
           }
         />
 
-        <div className="about">
+        <div className="about" data-reveal>
           <div className="about__copy">
             <p className="about__lead">
               I started in Information Science and Engineering, spent a few years in

@@ -112,7 +112,9 @@
 
   --text: #101012;
   --text-dim: #56565e;
-  --text-faint: #6b6b74;
+  /* Darkened from #6b6b74 so faint labels clear 4.5:1 on the inset surface
+     too (was 4.39:1 on --bg-inset, now 4.66:1). */
+  --text-faint: #67676f;
   --text-invert: #f7f6f2;
 
   --line: rgba(16, 16, 18, 0.14);
@@ -121,14 +123,16 @@
   --grid-line: rgba(16, 16, 18, 0.045);
   --dot: rgba(16, 16, 18, 0.22);
 
-  --accent: #cf2b12;
-  --accent-hover: #a82208;
+  /* Slightly deeper than #cf2b12 so accent text clears 4.5:1 on every light
+     surface including --bg-inset (was 4.36:1, now 4.72:1). */
+  --accent: #c62710;
+  --accent-hover: #a02009;
   --accent-ink: #fffaf8;
-  --accent-soft: rgba(207, 43, 18, 0.09);
-  --accent-line: rgba(207, 43, 18, 0.42);
+  --accent-soft: rgba(198, 39, 16, 0.09);
+  --accent-line: rgba(198, 39, 16, 0.42);
   --ok: #176f4a;
   --ok-soft: rgba(23, 111, 74, 0.1);
-  --focus: #b3220c;
+  --focus: #a82209;
 
   --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
   --shadow-pop: 0 24px 60px -30px rgba(24, 20, 16, 0.35);
@@ -148,5 +152,35 @@
     --dur-2: 1ms;
     --dur-3: 1ms;
     --dur-slow: 1ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Pointer layer + reveal tokens
+   The custom cursor only ever renders when html[data-cursor="custom"] is set
+   by the capability-gated hook, so these values are inert until then.
+   --------------------------------------------------------------------------- */
+:root {
+  --cursor-dot: 4px;
+  --cursor-ring: 22px;
+  --cursor-ring-action: 34px;
+  --cursor-hairline: rgba(255, 255, 255, 0.16);
+  --reveal-shift: 12px;
+  --reveal-dur: 420ms;
+}
+
+[data-theme='light'] {
+  --cursor-hairline: rgba(16, 16, 18, 0.2);
+}
+
+[data-motion='off'] {
+  --reveal-dur: 1ms;
+  --reveal-shift: 0px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --reveal-dur: 1ms;
+    --reveal-shift: 0px;
   }
 }

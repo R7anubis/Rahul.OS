@@ -40,6 +40,7 @@ export function QaFigure() {
       </text>
 
       {/* frame-time distribution */}
+      <g data-part="Frame-time samples">
       <rect className="fig-panel fig-line-strong" x="36" y="66" width="728" height="232" fill="var(--bg-panel)" />
       <text className="fig-t fig-ink-faint" x="54" y="92" fontSize="11">
         FRAME TIME SAMPLES — UNLABELLED BY DESIGN
@@ -77,7 +78,10 @@ export function QaFigure() {
         SESSION ELAPSED
       </text>
 
+      </g>
+
       {/* event markers on the distribution */}
+      <g data-part="Spike markers">
       {[17, 31].map((index) => {
         const x = 78 + index * 14.6 + 4.5
         return (
@@ -90,7 +94,10 @@ export function QaFigure() {
         )
       })}
 
+      </g>
+
       {/* session timeline */}
+      <g data-part="Session timeline">
       <text className="fig-t fig-ink-faint" x="36" y="336" fontSize="12">
         SESSION TIMELINE · WHAT QA PRODUCES
       </text>
@@ -118,6 +125,8 @@ export function QaFigure() {
       ))}
 
       <path className="fig-line-strong" d="M736,384 L736,404" markerEnd="url(#qa-arrow)" opacity="0.6" />
+
+      </g>
 
       <text className="fig-t fig-accent-fill" x="36" y="488" fontSize="11">
         ABSTRACT ILLUSTRATION · NO REAL DATA · NOT AN EMPLOYER TOOL

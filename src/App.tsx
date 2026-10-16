@@ -13,9 +13,11 @@ import { ProjectDetail } from './components/ProjectDetail'
 import { ProjectGrid } from './components/ProjectGrid'
 import { Skills } from './components/Skills'
 import { Toolchain } from './components/Toolchain'
+import { PointerLayer } from './components/PointerLayer'
 import { useDocumentMeta } from './hooks/useDocumentMeta'
 import { useHashRoute } from './hooks/useHashRoute'
 import { useMotionPreference } from './hooks/useMotionPreference'
+import { useRevealOnScroll } from './hooks/useRevealOnScroll'
 import { useScrollSpy } from './hooks/useScrollSpy'
 import { useTheme } from './hooks/useTheme'
 import { projectBySlug, projects } from './data/projects'
@@ -31,6 +33,25 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   const activeSection = useScrollSpy(sectionIds, route.kind === 'home')
+
+  // Section reveals. Skipped when motion is off — the CSS leaves content
+  // visible in that case, so nothing depends on JavaScript.
+  const routeKey = route.kind === 'project' ? `project:${route.slug}` : route.kind
+  useRevealOnScroll(routeKey, !reduceMotion)
+
+  // A single accent hairline sweeps the viewport when the theme changes: a
+  // deliberate, one-off acknowledgement of the action rather than an effect
+  // that keeps running.
+  const toggleThemeWithSweep = useCallback(() => {
+    toggleTheme()
+    if (reduceMotion || typeof document === 'undefined') return
+    const root = document.documentElement
+    delete root.dataset.themeSweep
+    // Force a style flush so the animation can restart on rapid toggles.
+    void root.offsetWidth
+    root.dataset.themeSweep = 'true'
+    window.setTimeout(() => delete root.dataset.themeSweep, 520)
+  }, [toggleTheme, reduceMotion])
 
   const project = route.kind === 'project' ? projectBySlug(route.slug) : undefined
 
@@ -93,7 +114,7 @@ export default function App() {
         activeSection={activeSection}
         theme={theme}
         motion={motion}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={toggleThemeWithSweep}
         onToggleMotion={toggleMotion}
         onOpenPalette={() => setPaletteOpen(true)}
         onNavigate={navigate}
@@ -102,7 +123,7 @@ export default function App() {
       <main id="main">
         {route.kind === 'home' ? (
           <>
-            <Hero onNavigate={navigate} />
+            <Hero onNavigate={navigate} motionEnabled={!reduceMotion} />
             <Toolchain />
             <About />
             <ProjectGrid onOpenProject={openProject} />
@@ -110,7 +131,7 @@ export default function App() {
             <Education />
             <Skills />
             <InterestMap onNavigate={navigate} />
-            <Contact />
+            <Contact motionEnabled={!reduceMotion} />
           </>
         ) : null}
 
@@ -130,10 +151,12 @@ export default function App() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={navigate}
         theme={theme}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={toggleThemeWithSweep}
         motion={motion}
         onToggleMotion={toggleMotion}
       />
+
+      <PointerLayer motionEnabled={!reduceMotion} />
 
       {/* Route count is exposed for the smoke test; harmless in production. */}
       <span className="vh" data-testid="project-count">

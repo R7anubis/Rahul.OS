@@ -20,14 +20,23 @@ interface InterestMapProps {
  */
 export function InterestMap({ onNavigate }: InterestMapProps) {
   const [selectedId, setSelectedId] = useState<string>(interestNodes[1]?.id ?? '')
+  // Hovering or focusing a node previews its connections without committing a
+  // selection, so the map can be read by moving across it.
+  const [previewId, setPreviewId] = useState<string | null>(null)
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const selected: InterestNode | undefined =
     interestNodes.find((node) => node.id === selectedId) ?? interestNodes[0]
 
+
   const byId = (id: string) => interestNodes.find((node) => node.id === id)
 
   const select = useCallback((id: string) => setSelectedId(id), [])
+
+  // The node the map is currently emphasising: preview wins, selection is the
+  // resting state.
+  const focusId = previewId ?? selected?.id ?? ''
+  const isLit = (id: string) => focusId === id
 
   const onCanvasKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp']
@@ -83,7 +92,7 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
           }
         />
 
-        <div className="imap">
+        <div className="imap" data-reveal>
           <div>
             <div
               className="imap__canvas"
@@ -96,7 +105,7 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                   const from = byId(fromId)
                   const to = byId(toId)
                   if (!from || !to) return null
-                  const active = selected?.id === fromId || selected?.id === toId
+                  const active = focusId === fromId || focusId === toId
                   return (
                     <line
                       key={`${fromId}-${toId}`}
@@ -116,7 +125,7 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                     cx={node.x}
                     cy={node.y}
                     r="9"
-                    opacity={selected?.id === node.id ? 1 : 0}
+                    opacity={isLit(node.id) ? 1 : 0}
                   />
                 ))}
               </svg>
@@ -128,13 +137,19 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                   className="imap__nodebutton"
                   style={{ left: `${node.x}%`, top: `${node.y}%` }}
                   aria-pressed={selected?.id === node.id}
+                  data-lit={isLit(node.id) ? 'true' : undefined}
                   ref={(element) => {
                     buttonRefs.current[node.id] = element
                   }}
+                  onMouseEnter={() => setPreviewId(node.id)}
+                  onMouseLeave={() => setPreviewId(null)}
+                  onFocus={() => setPreviewId(node.id)}
+                  onBlur={() => setPreviewId(null)}
                   onClick={() => select(node.id)}
                 >
                   <i aria-hidden="true" />
                   {node.short}
+                  {isLit(node.id) ? <span className="vh"> (highlighted on the map)</span> : null}
                 </button>
               ))}
             </div>
@@ -177,6 +192,11 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                   type="button"
                   className="imap__index-item"
                   aria-pressed={selected?.id === node.id}
+                  data-lit={isLit(node.id) ? 'true' : undefined}
+                  onMouseEnter={() => setPreviewId(node.id)}
+                  onMouseLeave={() => setPreviewId(null)}
+                  onFocus={() => setPreviewId(node.id)}
+                  onBlur={() => setPreviewId(null)}
                   onClick={() => select(node.id)}
                 >
                   <span aria-hidden="true">{node.code}</span>

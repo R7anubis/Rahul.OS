@@ -31,12 +31,12 @@ export const education: EducationEntry[] = [
     degree: 'B.Tech, Information Science and Engineering',
     institution: 'Presidency University',
     location: 'Bengaluru, India',
-    period: 'Dates not listed on the supplied résumé',
-    periodVerified: false,
+    period: '2019 – 2023',
+    periodVerified: true,
     status: 'Completed',
     note: 'Bachelor of Technology, Information Science and Engineering.',
     detail:
-      'Where the interest in systems, software and applied data work started — the foundation for later work in embedded software and QA.',
+      'Where the interest in systems, software and applied data work started — the foundation for later work in embedded software and QA, and where the SameFace research paper was written.',
   },
 ]
 

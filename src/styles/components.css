@@ -2514,3 +2514,472 @@
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.6fr);
   }
 }
+
+/* --------------------------------------------------------------------------
+   Pointer layer — precision cursor, contextual states, click ripples
+   -------------------------------------------------------------------------- */
+.pointer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+  contain: layout paint;
+}
+.pointer-layer[data-visible='false'] .pointer-dot,
+.pointer-layer[data-visible='false'] .pointer-ring,
+.pointer-layer[data-visible='false'] .pointer-cross {
+  opacity: 0;
+}
+
+.pointer-dot,
+.pointer-ring,
+.pointer-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transition: opacity var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+    background-color var(--dur-2) var(--ease);
+}
+
+/* core dot */
+.pointer-dot {
+  width: var(--cursor-dot);
+  height: var(--cursor-dot);
+  margin: calc(var(--cursor-dot) / -2) 0 0 calc(var(--cursor-dot) / -2);
+  border-radius: 50%;
+  background: var(--text);
+  opacity: 0.9;
+}
+
+/* thin ring with a corner registration mark */
+.pointer-ring {
+  display: grid;
+  place-items: center;
+  width: var(--cursor-ring);
+  height: var(--cursor-ring);
+  margin: calc(var(--cursor-ring) / -2) 0 0 calc(var(--cursor-ring) / -2);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  opacity: 0.85;
+}
+.pointer-ring__mark {
+  width: 3px;
+  height: 3px;
+  border: 1px solid var(--line-strong);
+  transform: rotate(45deg);
+  transition: opacity var(--dur-2) var(--ease);
+  opacity: 0;
+}
+
+/* I-beam substitute: keeps the text-selection affordance intact */
+.pointer-bar {
+  width: 1px;
+  height: 20px;
+  margin: -10px 0 0 0;
+  background: var(--text);
+  opacity: 0;
+}
+
+/* --- contextual states --- */
+.pointer-layer[data-context='action'] .pointer-ring {
+  width: var(--cursor-ring-action);
+  height: var(--cursor-ring-action);
+  margin: calc(var(--cursor-ring-action) / -2) 0 0 calc(var(--cursor-ring-action) / -2);
+  border-color: var(--accent-line);
+  border-radius: var(--radius-1);
+}
+.pointer-layer[data-context='action'] .pointer-dot {
+  background: var(--accent);
+}
+.pointer-layer[data-context='action'] .pointer-ring__mark {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.pointer-layer[data-context='text'] .pointer-dot,
+.pointer-layer[data-context='text'] .pointer-ring {
+  opacity: 0;
+}
+.pointer-layer[data-context='text'] .pointer-bar {
+  opacity: 0.9;
+}
+
+.pointer-layer[data-context='inspect'] .pointer-dot {
+  background: var(--accent);
+}
+.pointer-layer[data-context='inspect'] .pointer-ring {
+  border-color: var(--accent);
+  border-radius: 0;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  opacity: 0.9;
+}
+
+/* hairlines spanning the diagram under the pointer */
+.pointer-cross {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+.pointer-cross__x,
+.pointer-cross__y {
+  position: absolute;
+  background: var(--cursor-hairline);
+}
+.pointer-cross__x {
+  left: 0;
+  right: 0;
+  height: 1px;
+  top: 0;
+}
+.pointer-cross__y {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  left: 0;
+}
+.pointer-cross__readout {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  padding: 1px 4px;
+  border: 1px solid var(--accent-line);
+  white-space: pre;
+}
+
+/* click ripple */
+/* The wrapper carries the pointer position as an inline transform; the pulse
+   is animated on the pseudo-element so the two never fight over `transform`. */
+.pointer-ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+}
+.pointer-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  animation: pointer-ripple var(--dur-3) var(--ease-out) forwards;
+}
+@keyframes pointer-ripple {
+  from {
+    opacity: 0.8;
+    transform: scale(0.35);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Pointer-reactive grid
+   -------------------------------------------------------------------------- */
+.pointer-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px);
+  background-size: 13px 13px;
+  opacity: 0;
+  transition: opacity var(--dur-3) var(--ease);
+  mask-image: radial-gradient(240px circle at var(--px, 50%) var(--py, 50%), #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(240px circle at var(--px, 50%) var(--py, 50%), #000 0%, transparent 72%);
+}
+.pointer-grid[data-active='true'] {
+  opacity: 0.5;
+}
+.pointer-grid--hero {
+  background-size: 14px 14px;
+}
+.pointer-grid--contact {
+  inset: 0;
+  opacity: 0;
+}
+/* Keep the reactive grid beneath the content it sits behind. */
+.contact > .shell {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 767px) {
+  .pointer-grid {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Theme sweep — one accent hairline, on explicit user action only
+   -------------------------------------------------------------------------- */
+[data-theme-sweep] body::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--accent);
+  z-index: 92;
+  pointer-events: none;
+  animation: theme-sweep 480ms var(--ease-out) forwards;
+}
+@keyframes theme-sweep {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  12% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+}
+[data-theme-sweep][data-motion='off'] body::after {
+  animation: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme-sweep] body::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Diagram explorer — interactive architecture figure
+   -------------------------------------------------------------------------- */
+.diagram {
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  padding: clamp(1rem, 2vw, 1.6rem);
+}
+.diagram__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.diagram__title {
+  font-size: var(--fs-h3);
+  font-weight: 520;
+}
+.diagram__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-faint);
+}
+.diagram__layout {
+  display: grid;
+  gap: var(--sp-5);
+}
+@media (min-width: 1180px) {
+  .diagram__layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.diagram__figure {
+  margin: 0;
+}
+.diagram__panel {
+  display: grid;
+  gap: var(--sp-4);
+  align-content: start;
+}
+.diagram__stages {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.diagram__stage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.2rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 2px solid transparent;
+  text-align: left;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease);
+}
+.diagram__stage:hover {
+  color: var(--text);
+  background: var(--bg-raised);
+}
+.diagram__stage[aria-pressed='true'] {
+  color: var(--text);
+  border-left-color: var(--accent);
+  background: var(--bg-inset);
+}
+.diagram__stage-index {
+  color: var(--text-faint);
+}
+.diagram__stage[aria-pressed='true'] .diagram__stage-index {
+  color: var(--accent);
+}
+.diagram__stage-label {
+  text-transform: none;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+.diagram__readout {
+  border: 1px solid var(--line);
+  background: var(--bg-inset);
+  padding: 0.9rem 1rem;
+  min-height: 6.5rem;
+}
+.diagram__readout-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent);
+  margin-bottom: 0.45rem;
+}
+.diagram__readout-text {
+  color: var(--text-dim);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+
+/* Staged figures: the component marks the svg `data-staged="true"` only when an
+   active stage is being driven, so a standalone render of the same figure stays
+   fully legible instead of dimming every group. */
+.fig [data-stage] {
+  transition: opacity var(--dur-3) var(--ease);
+}
+.fig[data-staged='true'] [data-stage] {
+  opacity: 0.32;
+}
+.fig[data-staged='true'] [data-stage][data-active='true'] {
+  opacity: 1;
+}
+[data-motion='off'] .fig [data-stage] {
+  transition: none;
+}
+
+/* --------------------------------------------------------------------------
+   Figure part focus (detail pages only — project cards keep their overlay link,
+   so nothing intercepts the pointer there).
+   Pointing at one part of a dense diagram isolates it; the rest step back. This
+   is a reading aid on a technical drawing, not decoration.
+   -------------------------------------------------------------------------- */
+.detail__visual .fig [data-part],
+.diagram__figure .fig [data-part] {
+  transition: opacity var(--dur-2) var(--ease);
+}
+@media (hover: hover) {
+  .detail__visual .fig:hover [data-part],
+  .diagram__figure .fig:hover [data-part] {
+    opacity: 0.45;
+  }
+  .detail__visual .fig [data-part]:hover,
+  .diagram__figure .fig [data-part]:hover {
+    opacity: 1;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Interest map: preview highlighting
+   -------------------------------------------------------------------------- */
+.imap__edge--active {
+  stroke: var(--accent);
+}
+.imap__nodebutton[data-lit='true'] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.imap__nodebutton[data-lit='true'] i {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.imap__index-item[data-lit='true'] {
+  color: var(--text);
+  background: var(--bg-raised);
+}
+.imap__index-item[data-lit='true'] span span {
+  color: var(--accent);
+}
+.imap__panel {
+  transition: border-color var(--dur-2) var(--ease);
+}
+
+/* --------------------------------------------------------------------------
+   Motion refinements
+   -------------------------------------------------------------------------- */
+/* Filter results stagger instead of appearing all at once. */
+.card-enter {
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Timeline panel cross-fades when the selected milestone changes. */
+.detail-panel {
+  animation: panel-swap var(--dur-3) var(--ease-out) both;
+}
+@keyframes panel-swap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-motion='off'] .detail-panel {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel {
+    animation: none;
+  }
+}
+
+/* Selected milestone node picks up a short accent settle. */
+.milestone__node {
+  transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease),
+    transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease);
+}
+.milestone__btn[aria-expanded='true'] .milestone__node {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+[data-motion='off'] .milestone__btn[aria-expanded='true'] .milestone__node {
+  transform: none;
+}
+
+/* Nav and chip micro-feedback */
+.filter,
+.chip,
+.tag {
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
+    background-color var(--dur-2) var(--ease);
+}

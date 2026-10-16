@@ -88,7 +88,7 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
           }
         />
 
-        <div className="timeline">
+        <div className="timeline" data-reveal>
           <div>
             <ul className="timeline__rail" onKeyDown={onKeyDown}>
               {experience.map((entry) => {

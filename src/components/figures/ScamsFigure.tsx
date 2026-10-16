@@ -39,7 +39,7 @@ export function ScamsFigure() {
       </text>
 
       {NODES.map((node, index) => (
-        <g key={node.title}>
+        <g key={node.title} data-part={`step ${node.code}`}>
           <rect
             className={index === 2 ? 'fig-panel fig-accent' : 'fig-panel fig-line-strong'}
             x={node.x}
@@ -82,7 +82,7 @@ export function ScamsFigure() {
       ))}
 
       {/* final step, stacked under the pipeline to stay inside the viewBox */}
-      <g>
+      <g data-part="step 05">
         <rect className="fig-panel fig-line-strong" x="582" y="196" width={boxWidth} height="76" fill="var(--bg-panel)" />
         <rect className="fig-line-strong" x="582" y="196" width={boxWidth} height="3" />
         <text className="fig-t fig-ink-faint" x="594" y="220" fontSize="12">
@@ -107,7 +107,7 @@ export function ScamsFigure() {
         { x: 178, label: 'ELEVATED', dim: false },
         { x: 320, label: 'HIGH', dim: false },
       ].map((band) => (
-        <g key={band.label}>
+        <g key={band.label} data-part={`risk ${band.label}`}>
           <rect
             className={band.dim ? 'fig-line-strong' : 'fig-accent-fill'}
             x={band.x}
@@ -128,6 +128,7 @@ export function ScamsFigure() {
       ))}
 
       {/* conceptual app screen */}
+      <g data-part="Conceptual app view">
       <rect className="fig-inset fig-line-strong" x="36" y="288" width="440" height="142" fill="var(--bg-inset)" />
       <rect className="fig-panel fig-line" x="36" y="288" width="440" height="24" fill="var(--bg-panel)" />
       <circle className="fig-accent-fill" cx="52" cy="300" r="3.5" />
@@ -158,8 +159,10 @@ export function ScamsFigure() {
       <text className="fig-t fig-ink-dim" x="144" y="410" fontSize="12">
         GUIDANCE
       </text>
+      </g>
 
       {/* escalation ladder */}
+      <g data-part="Escalation path">
       <rect className="fig-line" x="520" y="288" width="244" height="118" fill="none" />
       <text className="fig-t fig-ink-faint" x="536" y="312" fontSize="12">
         ESCALATION PATH
@@ -172,6 +175,7 @@ export function ScamsFigure() {
           </text>
         </g>
       ))}
+      </g>
 
       <text className="fig-t fig-ink-faint" x="520" y="440" fontSize="12">
         GOVERNANCE · PILOT EVALUATION

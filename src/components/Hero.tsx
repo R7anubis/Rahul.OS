@@ -1,10 +1,12 @@
 import { ArrowRight, GraduationCap, Mail, MapPin } from 'lucide-react'
 import { profile } from '../data/profile'
 import { asset } from '../lib/assets'
+import { PointerGrid } from './PointerGrid'
 import { SignalMotif } from './SignalMotif'
 
 interface HeroProps {
   onNavigate: (hash: string) => void
+  motionEnabled: boolean
 }
 
 const PORTRAIT_SRC = asset('images/portrait-960.jpg')
@@ -19,7 +21,7 @@ const DUOTONE_SRCSET = [
   `${asset('images/portrait-duotone-1280.jpg')} 1280w`,
 ].join(', ')
 
-export function Hero({ onNavigate }: HeroProps) {
+export function Hero({ onNavigate, motionEnabled }: HeroProps) {
   const goToSection = (id: string) => (event: React.MouseEvent) => {
     event.preventDefault()
     onNavigate(`#${id}`)
@@ -29,6 +31,7 @@ export function Hero({ onNavigate }: HeroProps) {
     <section className="hero" id="top" aria-labelledby="hero-title">
       <div className="hero__bg">
         <span className="dot-field" />
+        <PointerGrid className="pointer-grid--hero" motionEnabled={motionEnabled} />
         <SignalMotif />
       </div>
 

@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowUpRight, Info } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, Info } from 'lucide-react'
 import { categoryLabel, projects, type Project } from '../data/projects'
+import { DiagramExplorer } from './DiagramExplorer'
 import { ProjectFigure } from './figures'
 import { statusChipClass } from '../lib/status'
 
@@ -9,7 +10,7 @@ interface ProjectDetailProps {
 }
 
 const statusNote: Record<Project['statusKind'], string> = {
-  'student-project': 'Built as a student project',
+  'student-project': 'Student project — design documented in a research paper',
   'academic-proposal': 'Academic proposal and pilot design — not deployed',
   'study-exploration': 'Study and exploration — architecture described, not a release',
   'professional-experience': 'Professional experience — not a product Rahul owns',
@@ -63,7 +64,7 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
           </div>
         </div>
 
-        <figure className="detail__visual">
+        <figure className="detail__visual" data-cursor-inspect="figure">
           <div className="detail__visual-inner">
             <ProjectFigure kind={project.figure} />
           </div>
@@ -76,6 +77,8 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
 
       <div className="detail__body">
         <div className="detail__sections">
+          {project.diagram ? <DiagramExplorer diagram={project.diagram} /> : null}
+
           {project.sections.map((section) => (
             <section className="detail__section" key={section.heading}>
               <h2>{section.heading}</h2>
@@ -113,6 +116,16 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
         </div>
 
         <aside className="detail__aside">
+          {project.sourceNote ? (
+            <div className="callout callout--neutral">
+              <p className="callout__label mono">
+                <BookOpen size={13} aria-hidden="true" />
+                Source
+              </p>
+              <p>{project.sourceNote}</p>
+            </div>
+          ) : null}
+
           <div className="callout">
             <p className="callout__label mono">
               <Info size={13} aria-hidden="true" />

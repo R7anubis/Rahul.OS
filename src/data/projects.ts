@@ -22,6 +22,7 @@ export type ProjectStatusKind =
 
 export type FigureKind =
   | 'sameface-landmarks'
+  | 'sameface-architecture'
   | 'scams-workflow'
   | 'carla-control'
   | 'qa-performance'
@@ -30,6 +31,25 @@ export interface ProjectSection {
   heading: string
   body: string[]
   bullets?: string[]
+}
+
+/**
+ * Maturity of a single stage of a documented system. Rendered as a chip in the
+ * interactive diagram so the three tiers are distinguishable at a glance, in
+ * words rather than colour alone.
+ */
+export type StageStatus = 'documented' | 'in-development' | 'proposed'
+
+export interface ProjectDiagram {
+  kind: FigureKind
+  heading: string
+  caption: string
+  stages: {
+    id: string
+    label: string
+    detail: string
+    status: StageStatus
+  }[]
 }
 
 export interface Project {
@@ -58,6 +78,10 @@ export interface Project {
   sections: ProjectSection[]
   /** ordered pipeline / control-loop steps rendered as a technical list */
   steps?: { title: string; detail: string }[]
+  /** optional interactive, stage-selectable architecture diagram */
+  diagram?: ProjectDiagram
+  /** provenance line for the detail sidebar */
+  sourceNote?: string
   disclaimer: { label: string; text: string }
   /** cross-links to the experience timeline, where relevant */
   experienceId?: string
@@ -86,79 +110,159 @@ export const projects: Project[] = [
     category: 'ai-ml',
     statusKind: 'student-project',
     statusLabel: 'Student project',
-    context: 'Android application',
-    role: 'Android development — Kotlin/Java, Firebase ML Kit',
+    context: 'Android app project · documented in a research paper',
+    role: 'Android development — Kotlin/Java, Firebase ML Kit, Firebase Authentication',
     summary:
-      'An Android application that uses on-device face and landmark detection to support facial similarity matching between images.',
+      'An Android app project for facial similarity matching, documented in a research paper: Firebase ML Kit face and landmark detection on device, Firebase for storage and accounts, with the similarity scoring itself set out as planned work.',
     lede:
-      'SameFace is an Android project about comparison: show it two faces and let it work out how alike they look. Detection and landmark extraction happen on device with Firebase ML Kit; the app then compares the resulting landmark geometry.',
-    period: 'Student project',
-    technologies: ['Kotlin', 'Java', 'Android', 'Firebase ML Kit', 'Face detection', 'Landmark detection'],
+      'SameFace is about resemblance: capture a face, compare it with others, and surface the people who look similar. The design is documented in a research paper — ML Kit does detection and landmarks on device, Firebase handles storage and accounts, and the scoring that would turn landmarks into a match is described as the next implementation step rather than a finished component.',
+    period: 'Research paper · student project',
+    technologies: [
+      'Kotlin',
+      'Java',
+      'Android Studio',
+      'Firebase ML Kit',
+      'Face detection',
+      'Landmark detection',
+      'Firebase Authentication',
+      'Firebase Realtime Database',
+      'OTP / 2FA',
+    ],
     figure: 'sameface-landmarks',
     figureCaption: 'Conceptual landmark diagram — original illustration, not a screenshot',
+    sourceNote:
+      'Primary source: “SameFace App: Facial Similarity Matching using Firebase ML FaceKit”, a research paper by Rahul Raj, Department of Information Science and Engineering, Presidency University. Section references below point into that paper.',
     sections: [
       {
-        heading: 'What the app does',
+        heading: 'What SameFace is',
         body: [
-          'SameFace takes images of faces and produces a similarity judgement between two of them. The heavy lifting is split in two: ML Kit finds the faces and their landmarks, and the application compares the geometry that comes back.',
-          'The interesting part of the problem is not detecting a face — that is well served by ML Kit — it is deciding what "similar" means in a way that survives lighting, pose and camera differences.',
+          'SameFace is a mobile app project that stores and analyses face data in order to match users who share a resemblance. The paper frames the goal as a social one — showing people others who look like them — and places the interesting engineering in the comparison step rather than the capture step.',
+          'It is developed in Kotlin and Java on Android Studio. The paper describes the app being built for Android with the Firebase stack underneath it: ML Kit for on-device face analysis, Firebase for storage, authentication and messaging.',
         ],
       },
       {
-        heading: 'Facial analysis pipeline',
+        heading: 'Documented architecture',
         body: [
-          'The pipeline is a straight line from camera input to a comparison result. Each stage produces data the next stage depends on, which makes it easy to reason about and easy to debug.',
-        ],
-      },
-      {
-        heading: 'Detection is not identification',
-        body: [
-          'It is worth being precise about vocabulary here. Face detection locates a face in an image and returns landmark coordinates. That is what this project does.',
-          'What it does not claim to do is biometric identity verification — it does not prove that two photographs are the same person, and it has no database of enrolled identities to match against.',
+          'The paper (Section IV) breaks the system into a small number of components: data storage, facial similarity matching, authentication and user communication, sitting behind the Android app itself. Keeping those concerns separate is what makes the design legible — each one can be reasoned about, and replaced, on its own.',
         ],
         bullets: [
-          'Detection: where a face is, and where its feature points are.',
-          'Similarity: how close two landmark sets are, in the app\u2019s own comparison.',
-          'Not claimed: identity verification, liveness checking or production deployment.',
+          'Android app — Kotlin/Java on Android Studio, camera capture, matching UI and chat.',
+          'Face data storage — captured facial data held in Firebase and associated with the user account.',
+          'Similarity matching — the comparison layer. Described as using ML Kit\u2019s extracted features first, with a dedicated similarity algorithm planned on top.',
+          'Authentication — Firebase Authentication, with two-factor verification by SMS or email OTP.',
+          'User communication — real-time chat between matched users over Firebase\u2019s realtime database.',
+        ],
+      },
+      {
+        heading: 'What ML Kit does — and what it does not',
+        body: [
+          'This is the part worth being exact about, because the vocabulary in this field is slippery. ML Kit\u2019s on-device Face Detection API returns a bounding box for each face, landmark coordinates (eyes, nose, mouth, ears, cheeks), face contours, and classification signals such as smiling and eyes-open probability.',
+          'It does not return a face embedding. Detection gives you numbers describing where features are in the image; it does not give you a vector describing who the face is, and it contains no comparison or scoring function. The paper groups detection, landmarks and "face recognition" together under the FaceKit heading, but the public Face Detection API stops at the first two.',
+          'So a similarity judgement needs a separate method, and there are broadly two families. The first compares landmark geometry directly — cheap, explainable, and sensitive to pose and lighting. The second runs the face through an embedding model trained for verification and compares vectors in that space; the paper\u2019s related-work section cites exactly this approach in FaceNet and VGGFace.',
+        ],
+      },
+      {
+        heading: 'Documented, in development, or proposed',
+        body: [
+          'Because this project spans a design and the code that follows it, it is worth separating the three. Everything below is drawn from the paper; nothing further is claimed.',
+        ],
+        bullets: [
+          'Documented design — the component architecture, ML Kit face and landmark detection, Firebase storage, Firebase Authentication with OTP-based two-factor verification, explicit user consent for storing facial data, and chat over the realtime database.',
+          'Described in the paper as being developed — the Android application itself, written in Kotlin and Java on Android Studio, with the five-step flow from registration through capture, storage and matching.',
+          'Proposed or future work — the custom ML similarity algorithm (the paper is explicit that this is planned for a future implementation), embedding-based recognition models, iOS support via a cross-platform framework, stronger encryption and anonymisation, a matching-accuracy feedback mechanism, and social sharing.',
+        ],
+      },
+      {
+        heading: 'Evaluation, as the paper sets it out',
+        body: [
+          'The paper\u2019s evaluation section is prospective. It describes how the app could be evaluated — matching accuracy measured against ground-truth data, plus user surveys for satisfaction, alongside system scalability — rather than reporting results that were obtained.',
+          'No accuracy figures, evaluation outcomes, trained models or user testing are reported in the text, so none are claimed here. The paper does name the honest difficulties: lighting, pose and age all degrade matching, which makes robustness in detection, feature extraction and scoring the hard part of the problem.',
         ],
       },
       {
         heading: 'What I took from it',
         body: [
-          'Building SameFace was mostly an exercise in structure: keeping on-device processing responsive, and separating what the ML Kit layer actually returns from the assumptions the comparison step makes about it.',
+          'Writing it up forced a distinction I now use everywhere: separate what the tooling actually returns from what you want it to mean. A landmark is a coordinate. "These two people look alike" is a claim built on top of coordinates, and it needs its own method, its own error analysis and its own honesty about when it fails.',
         ],
       },
     ],
     steps: [
       {
-        title: 'Capture',
-        detail: 'An image is selected on the Android device and decoded into a bitmap for analysis.',
+        title: 'User registration',
+        detail: 'An account is created with an email address or phone number, verified by OTP.',
       },
       {
-        title: 'Detect',
-        detail: 'Firebase ML Kit locates each face in the frame and returns its bounding region.',
+        title: 'Face data capture',
+        detail: 'The device camera captures the face; ML Kit detects it and extracts the relevant features.',
       },
       {
-        title: 'Landmarks',
-        detail: 'ML Kit returns landmark coordinates for the detected face — eyes, nose, mouth line, cheek and ear points.',
+        title: 'Face data storage',
+        detail: 'Captured facial data is stored in Firebase and associated with the user account.',
       },
       {
-        title: 'Normalise',
-        detail: 'Landmark sets are brought into a comparable frame so that position and scale in the image stop dominating the result.',
+        title: 'Facial similarity matching',
+        detail:
+          'Stored facial data is compared to identify similar faces. This is the open part of the design: ML Kit stops at detection and landmarks, so a separate similarity method is required to produce a score.',
       },
       {
-        title: 'Compare',
-        detail: 'The two landmark sets are compared and reduced to a single similarity signal for the user.',
-      },
-      {
-        title: 'Present',
-        detail: 'The result and the landmarks that produced it are shown back on screen in the app.',
+        title: 'Chat',
+        detail: 'Once a match exists, users can message each other in real time over Firebase.',
       },
     ],
+    diagram: {
+      kind: 'sameface-architecture',
+      heading: 'Architecture and flow',
+      caption:
+        'Architecture diagram based on the documented design — original illustration, not a screenshot. Select a stage to see what the paper says about it.',
+      stages: [
+        {
+          id: 'capture',
+          label: 'Capture',
+          status: 'documented',
+          detail:
+            'The Android app (Kotlin/Java, Android Studio) takes an image from the device camera and prepares it for analysis on device.',
+        },
+        {
+          id: 'detect',
+          label: 'Detect',
+          status: 'documented',
+          detail:
+            'ML Kit\u2019s face detection returns a bounding box for each face in the frame. This is the entry point to the whole pipeline.',
+        },
+        {
+          id: 'landmarks',
+          label: 'Landmarks',
+          status: 'documented',
+          detail:
+            'Landmark and contour coordinates come back for the detected face — eyes, nose, mouth, ears and cheeks. Coordinates, not an identity.',
+        },
+        {
+          id: 'store',
+          label: 'Store & auth',
+          status: 'documented',
+          detail:
+            'Facial data is held in Firebase against the user account, behind Firebase Authentication with two-factor OTP verification and explicit consent for storing facial data.',
+        },
+        {
+          id: 'similarity',
+          label: 'Similarity',
+          status: 'proposed',
+          detail:
+            'The scoring layer. The paper is explicit that a custom ML similarity algorithm is planned for a future implementation, trained on a dataset of facial features. ML Kit itself provides no embeddings and no comparison.',
+        },
+        {
+          id: 'chat',
+          label: 'Chat',
+          status: 'in-development',
+          detail:
+            'Matched users message each other in real time over Firebase\u2019s realtime database, closing the loop back into the Android app.',
+        },
+      ],
+    },
     disclaimer: {
       label: 'Scope of this page',
       text:
-        'SameFace is summarised here at the level confirmed by the supplied résumé and notes: an Android application using Kotlin/Java with Firebase ML Kit face and landmark detection to support facial similarity matching. No accuracy figures, model architecture, user numbers or production status are claimed. The diagram is an original illustration of the workflow.',
+        'Summarised from the SameFace research paper (Rahul Raj, Presidency University) as the primary source. Compared to that paper this page separates documented design from proposed work: the custom similarity algorithm, evaluation results and iOS support are described there as future work and are not presented here as built. No accuracy figures, trained models, user counts or production status are claimed. Every diagram on this page is an original illustration.',
     },
   },
 

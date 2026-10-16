@@ -19,7 +19,7 @@ export function Education() {
           }
         />
 
-        <div className="edu">
+        <div className="edu" data-reveal>
           {education.map((entry) => (
             <article className="edu__item" key={entry.id}>
               <p className="edu__when">

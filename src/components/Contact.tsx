@@ -9,6 +9,7 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { profile } from '../data/profile'
+import { PointerGrid } from './PointerGrid'
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard'
 import { SectionHeading } from './SectionHeading'
 
@@ -25,11 +26,12 @@ const linkIcons = {
  * No contact form: there is no backend to post to, and a form that silently
  * discards messages would be worse than an honest mailto link.
  */
-export function Contact() {
+export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
   const { state, copy, isCopied, isError } = useCopyToClipboard()
 
   return (
     <section className="section contact" id="contact" aria-labelledby="contact-title">
+      <PointerGrid className="pointer-grid--contact" motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="07"
@@ -44,7 +46,7 @@ export function Contact() {
           }
         />
 
-        <div className="contact__grid">
+        <div className="contact__grid" data-reveal>
           <div>
             <p className="contact__title">
               Let&rsquo;s talk about <em>data, AI, or systems</em> that have to work.

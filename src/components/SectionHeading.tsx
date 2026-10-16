@@ -14,7 +14,7 @@ interface SectionHeadingProps {
  */
 export function SectionHeading({ index, label, title, note, id }: SectionHeadingProps) {
   return (
-    <header className="section__head">
+    <header className="section__head" data-reveal>
       <div>
         <p className="section__eyebrow mono">
           <span className="section__index">{index}</span>

@@ -236,6 +236,30 @@ hr {
   }
 }
 
+/* --------------------------------------------------------------------------
+   Enhanced pointer layer
+   Applied only while html[data-cursor="custom"] is present — that attribute is
+   set by the capability-gated hook and removed whenever a custom cursor is not
+   appropriate, so the native cursor is never hidden without a replacement.
+   -------------------------------------------------------------------------- */
+html[data-cursor='custom'],
+html[data-cursor='custom'] * {
+  cursor: none;
+}
+
+/* Reveal-on-scroll. Elements are visible by default; only a JS-set
+   `data-reveal="pending"` hides them, and the hook always resolves them. */
+[data-reveal='pending'] {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift));
+}
+[data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--reveal-dur) var(--ease-out),
+    transform var(--reveal-dur) var(--ease-out);
+}
+
 /* ---- noscript ---------------------------------------------------------- */
 .noscript {
   max-width: 46rem;
