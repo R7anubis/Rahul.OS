@@ -23,9 +23,9 @@ export const profile = {
   system: 'RAHUL.OS',
   tagline: 'Embedded software, technical QA and data science.',
 
-  headline: 'I came to data science through embedded software and game QA.',
+  headline: 'Embedded software and technical QA, now studying data science at Monash.',
   support:
-    'Embedded C/C++ on Linux at Tata Elxsi, then technical QA on a AAA build at Rockstar Games India. Now studying data science at Monash.',
+    'Embedded C/C++ on Linux at Tata Elxsi, then technical QA on a AAA build at Rockstar Games India.',
 
   location: 'Melbourne, Australia',
   locationShort: 'Melbourne, AU',
