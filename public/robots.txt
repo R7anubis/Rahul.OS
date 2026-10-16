@@ -1,0 +1,5 @@
+# RAHUL.OS — personal site. Everything here is public; nothing is tracked.
+User-agent: *
+Allow: /
+
+Sitemap: /sitemap.xml
