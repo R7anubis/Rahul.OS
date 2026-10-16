@@ -30,8 +30,13 @@ export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
   const { state, copy, isCopied, isError } = useCopyToClipboard()
 
   return (
-    <section className="section section--fx contact" id="contact" aria-labelledby="contact-title">
-      <SectionBackdrop motionEnabled={motionEnabled} snake />
+    <section
+      className="section section--fx contact"
+      id="contact"
+      aria-labelledby="contact-title"
+      data-snake-band
+    >
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="07"

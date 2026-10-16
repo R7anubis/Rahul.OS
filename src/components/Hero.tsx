@@ -1,7 +1,6 @@
 import { ArrowRight, GraduationCap, Mail, MapPin } from 'lucide-react'
 import { profile } from '../data/profile'
 import { asset } from '../lib/assets'
-import { DotSnake } from './DotSnake'
 import { PointerGrid } from './PointerGrid'
 import { SignalMotif } from './SignalMotif'
 
@@ -29,10 +28,9 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
   }
 
   return (
-    <section className="hero" id="top" aria-labelledby="hero-title">
+    <section className="hero" id="top" aria-labelledby="hero-title" data-snake-band>
       <div className="hero__bg">
         <span className="dot-field" />
-        <DotSnake motionEnabled={motionEnabled} />
         <PointerGrid motionEnabled={motionEnabled} />
         <SignalMotif />
       </div>

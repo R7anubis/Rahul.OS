@@ -74,8 +74,9 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
 
   return (
     <section className="section section--fx" id="experience" aria-labelledby="experience-title">
-      {/* Grid only: the milestone rail and the detail panel own this section's
-          centre, so a snake here would sit behind them or fight the controls. */}
+      {/* Grid only. The milestone rail and the detail panel own this section's
+          centre, so it declares no `data-snake-band`: the snake would either be
+          hidden behind them or fight the controls. */}
       <SectionBackdrop motionEnabled={!reduceMotion} />
       <div className="shell">
         <SectionHeading

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { About } from './components/About'
 import { CommandPalette } from './components/CommandPalette'
 import { Contact } from './components/Contact'
+import { DotSnake } from './components/DotSnake'
 import { Education } from './components/Education'
 import { ExperienceTimeline } from './components/ExperienceTimeline'
 import { Footer } from './components/Footer'
@@ -133,6 +134,11 @@ export default function App() {
             <Skills />
             <InterestMap onNavigate={navigate} />
             <Contact motionEnabled={!reduceMotion} />
+
+            {/* One snake for the whole page. It is mounted last so it paints
+                above the sections' dot textures, and it stays behind the
+                content columns, which are lifted above it. */}
+            <DotSnake motionEnabled={!reduceMotion} />
           </>
         ) : null}
 

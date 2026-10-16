@@ -1045,10 +1045,11 @@ section('Diagram explorer: stable heading and selection model')
   host.remove()
 }
 
-section('Dot snake gating and layering')
+section('Dot snake: one for the whole page')
 
 {
   const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const snakeSource = readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')
   const originalMatchMedia = window.matchMedia
 
   const stub = ({ fine, reduced, hover }) => (query) => ({
@@ -1068,10 +1069,9 @@ section('Dot snake gating and layering')
     dispatchEvent: () => false,
   })
 
-  // The snakes only exist on the home page, so each mount has to start from the
-  // home route. Earlier sections leave the document on a project route, which
-  // silently made every mount assertion here vacuous — the route is therefore
-  // reset per mount and asserted below.
+  // Earlier sections leave the document on a project route, which silently made
+  // every mount assertion here vacuous. The route is reset per mount and the
+  // home page is asserted before anything else is.
   const mountFresh = async () => {
     window.history.replaceState(null, '', '/')
     const host = document.createElement('div')
@@ -1080,21 +1080,15 @@ section('Dot snake gating and layering')
     await act(async () => {
       r.render(React.createElement(App))
     })
-    ok(
-      host.querySelector('.hero') !== null,
-      'the home page is the rendered route for this mount',
-    )
+    ok(host.querySelector('.hero') !== null, 'the home page is the rendered route for this mount')
     return { host, r }
   }
 
-  // jsdom has no canvas backend, so this asserts the gating decision the
-  // component makes before it touches a rendering context.
+  // jsdom has no canvas backend, so these assert the decisions the component
+  // makes before it touches a rendering context.
   window.matchMedia = stub({ fine: false, reduced: false, hover: false })
   const touch = await mountFresh()
-  ok(
-    touch.host.querySelectorAll('canvas.snake').length === 0,
-    'touch-only device: no snake is mounted anywhere',
-  )
+  ok(touch.host.querySelectorAll('canvas.snake').length === 0, 'touch-only device: no snake is mounted')
   await act(async () => {
     touch.r.unmount()
   })
@@ -1102,117 +1096,214 @@ section('Dot snake gating and layering')
 
   window.matchMedia = stub({ fine: true, reduced: true, hover: true })
   const reducedMount = await mountFresh()
-  ok(
-    reducedMount.host.querySelectorAll('canvas.snake').length === 0,
-    'reduced motion: no snake is mounted anywhere',
-  )
+  ok(reducedMount.host.querySelectorAll('canvas.snake').length === 0, 'reduced motion: no snake is mounted')
   await act(async () => {
     reducedMount.r.unmount()
   })
   reducedMount.host.remove()
 
-  // Fine pointer with motion allowed: one snake per spacious section.
+  // Fine pointer with motion allowed: exactly one snake, owned by the page.
   window.matchMedia = stub({ fine: true, reduced: false, hover: true })
   const fineMount = await mountFresh()
   const snakes = [...fineMount.host.querySelectorAll('canvas.snake')]
-  ok(snakes.length === 3, `the snake is mounted in three sections (${snakes.length})`, 'expected 3')
-  const snakeSections = snakes.map((c) => c.closest('section')?.id)
+  ok(snakes.length === 1, `one snake canvas for the whole page (${snakes.length})`, 'expected 1')
+  const snake = snakes[0]
+  ok(snake.closest('section') === null, 'the snake belongs to the page, not to a section')
+  const main = snake.parentElement
+  ok(main.tagName === 'MAIN', 'the snake is mounted at page level, inside <main>')
   ok(
-    snakeSections.join(',') === 'top,about,contact',
-    `snake sections are the spacious ones (${snakeSections.join(', ')})`,
+    main.children[main.children.length - 1] === snake,
+    'it is mounted last, so it paints above the printed dot textures',
   )
   ok(
-    fineMount.host.querySelectorAll('#experience canvas.snake, #skills canvas.snake, #interests canvas.snake').length === 0,
-    'no snake in the sections that were judged too dense',
+    fineMount.host.querySelectorAll('section canvas.snake').length === 0,
+    'no section mounts a snake of its own any more',
+  )
+
+  // Where it may go is declared in markup, by the sections themselves.
+  const bands = [...fineMount.host.querySelectorAll('[data-snake-band]')].map((el) => el.id)
+  ok(bands.join(',') === 'top,about,contact', `the snake travels in the spacious sections (${bands.join(', ')})`)
+  ok(
+    fineMount.host.querySelectorAll('#projects[data-snake-band], #experience[data-snake-band], #education[data-snake-band], #skills[data-snake-band], #interests[data-snake-band]').length === 0,
+    'the dense sections do not opt in',
+  )
+  // The one visible crossing the design depends on: the hero and About are
+  // separate sections with the toolchain strip between them and nothing else,
+  // so the snake can swim across that boundary instead of diving.
+  const heroEl = fineMount.host.querySelector('#top')
+  const stripEl = fineMount.host.querySelector('.toolchain')
+  ok(
+    heroEl !== null && heroEl.nextElementSibling === stripEl && stripEl !== null,
+    'the toolchain strip is what sits between the hero and About',
+  )
+  ok(
+    stripEl !== null && stripEl.nextElementSibling?.id === 'about',
+    'and About follows it directly, so the gap the snake crosses is just the strip',
   )
   await act(async () => {
     fineMount.r.unmount()
   })
   fineMount.host.remove()
 
+  // No bands and no snake off the home page.
+  window.history.replaceState(null, '', '#/projects/sameface')
+  const projectHost = document.createElement('div')
+  document.body.appendChild(projectHost)
+  const projectRoot = createRoot(projectHost)
+  await act(async () => {
+    projectRoot.render(React.createElement(App))
+  })
+  ok(projectHost.querySelectorAll('h1').length === 1, 'the project route rendered for this mount')
+  ok(projectHost.querySelectorAll('[data-snake-band]').length === 0, 'a project page has no bands to travel in')
+  ok(projectHost.querySelectorAll('canvas.snake').length === 0, 'and no snake')
+  await act(async () => {
+    projectRoot.unmount()
+  })
+  projectHost.remove()
+  window.history.replaceState(null, '', '/')
+
   window.matchMedia = originalMatchMedia
 
-  // Layering: behind content, never intercepting a pointer event.
-  const snakeRule = css.slice(css.indexOf('.snake {'))
-  ok(/pointer-events:\s*none/.test(snakeRule.slice(0, 400)), 'the snake never takes a pointer event')
+  // --- layering ---
+  const snakeRule = css.slice(css.indexOf('.snake {'), css.indexOf('.snake {') + 420)
+  ok(/position:\s*fixed/.test(snakeRule), 'the snake is a single fixed layer over the page')
   ok(
-    /position:\s*absolute/.test(snakeRule.slice(0, 400)),
-    'the snake is positioned inside the hero background, not fixed over the page',
+    /inset:\s*0/.test(snakeRule) && /z-index:\s*0/.test(snakeRule),
+    'it covers the viewport at z-index 0, above the section backgrounds',
   )
-  ok(
-    /z-index:\s*0/.test(css.slice(css.indexOf('.hero__bg {'), css.indexOf('.hero__inner'))),
-    'the hero background layer (which holds the snake) sits at z-index 0',
-  )
+  ok(/pointer-events:\s*none/.test(snakeRule), 'the snake never takes a pointer event')
   ok(
     /z-index:\s*1/.test(css.slice(css.indexOf('.hero__inner {'), css.indexOf('.hero__inner {') + 200)),
-    'hero content sits above the snake',
+    'hero content stays above the snake',
   )
-  ok(/prefers-reduced-motion/.test(readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')),
-    'the snake component itself checks reduced motion')
 
-  // jsdom provides no canvas context. The component must treat that as "no
-  // effect" rather than throwing, so a browser without 2D canvas still gets a
-  // working page.
-  const snakeSource = readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')
+  // --- one instance, working in document coordinates ---
+  ok(!/presenceHolder/.test(snakeSource), 'the presence slot that arbitrated between instances is gone')
+  ok(!/new IntersectionObserver/.test(snakeSource), 'per-section primacy observers are gone with it')
+  // Comments stripped first: the header explains the loop, and counting prose
+  // as call sites is how this assertion was wrong the first time.
+  const snakeCode = snakeSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   ok(
-    /if \(!ctx\) return/.test(snakeSource),
-    'a missing 2D context disables the effect instead of throwing',
+    (snakeCode.match(/requestAnimationFrame\(/g) || []).length === 2 &&
+      (snakeCode.match(/<canvas/g) || []).length === 1,
+    'one canvas and one animation loop for the whole page',
   )
+  ok(
+    /document coordinates/.test(snakeSource) && /dot\.cy - offset/.test(snakeSource),
+    'it simulates in document coordinates and subtracts the scroll offset when drawing',
+  )
+  ok(
+    /scrollY = window\.scrollY/.test(snakeSource),
+    'so scrolling moves the page past the snake rather than the snake across the page',
+  )
+  ok(
+    /querySelectorAll\('\[data-snake-band\]'\)/.test(snakeSource),
+    'the bands come from the markup, not from a hard-coded list of sections',
+  )
+  ok(
+    /buildCorridors/.test(snakeSource) && /phaseFor/.test(snakeSource) && /snapToLattice/.test(snakeSource),
+    'the geometry comes from the shared lattice module',
+  )
+  ok(
+    !/Math\.round\(dot\.x \/ DOT_PITCH\)/.test(snakeSource),
+    'it no longer rounds from the corner, which lands between the printed dots',
+  )
+  ok(
+    /ctx\.clip\(\)/.test(snakeSource) && /for \(const band of current\.bands\)/.test(snakeSource),
+    'every band is also a clip region, so nothing is painted outside them',
+  )
+
+  // --- the two transitions ---
+  ok(/const HOME_PULL = /.test(snakeSource), 'within a corridor it steers toward the band being read')
+  ok(/const READ_FRACTION = 0\.38/.test(snakeSource), 'measured from a line 38% down the viewport, where the eye sits')
+  ok(
+    /const startDive = \(\) => \{/.test(snakeSource) &&
+      /state\.phase = 'surface'/.test(snakeSource) &&
+      /place\(current, true\)/.test(snakeSource),
+    'between corridors it dives, is moved while invisible, then surfaces',
+  )
+  ok(
+    /if \(pending && state\.phase !== 'dive'\) \{\n        if \(state\.placed && snakeOnScreen\(\)\) startDive\(\)\n        else relocateNow\(\)/.test(
+      snakeSource,
+    ),
+    'and it only performs that dive when there is something on screen to see',
+  )
+  ok(
+    /if \(pending && pending !== target\) pending = null/.test(snakeSource) &&
+      /if \(pending && state\.phase !== 'dive'\)/.test(snakeSource),
+    'a queued move cannot get stuck: it is dropped if it is no longer wanted, and acted on in every other phase',
+  )
+  ok(
+    !/mask-image/.test(snakeRule),
+    'the section-sized radial mask is gone: at viewport size it would fade the snake out at the screen edges, breaking the wrap',
+  )
+
+  // --- robustness, unchanged from before ---
+  ok(/prefers-reduced-motion/.test(snakeSource), 'the snake component itself checks reduced motion')
+  ok(/if \(!ctx\) return/.test(snakeSource), 'a missing 2D context disables the effect instead of throwing')
   ok(
     /document\.addEventListener\('visibilitychange', onVisibility\)/.test(snakeSource) &&
       /document\.removeEventListener\('visibilitychange', onVisibility\)/.test(snakeSource),
     'the snake pauses on tab hide and removes that listener on cleanup',
   )
   ok(
-    /io\?\.disconnect\(\)/.test(snakeSource) && /themeObserver\.disconnect\(\)/.test(snakeSource),
+    /window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(snakeSource) &&
+      /window\.removeEventListener\('scroll', onScroll\)/.test(snakeSource),
+    'the scroll listener is passive and removed on cleanup',
+  )
+  ok(
+    /ro\?\.disconnect\(\)/.test(snakeSource) && /themeObserver\.disconnect\(\)/.test(snakeSource),
     'observers are disconnected on cleanup',
   )
   ok(/stop\(\)\n      ro\?\.disconnect/.test(snakeSource), 'the animation frame loop is stopped on cleanup')
+}
 
-  // Only one snake may be visible at a time, and handover must be sequential.
-  ok(
-    /let presenceHolder: object \| null = null/.test(snakeSource),
-    'a single module-level presence slot arbitrates between snake instances',
-  )
-  ok(
-    /if \(!wants && owns && presence <= 0\.01\)/.test(snakeSource),
-    'a snake releases the slot only once it has finished fading out',
-  )
-  ok(
-    /if \(!wants && owns && presence <= 0\.01\)/.test(snakeSource) &&
-      /state\.fade \* presence/.test(snakeSource),
-    'presence scales the drawn alpha, so handover is a fade rather than a cut',
-  )
-  ok(
-    /if \(presenceHolder === token\) presenceHolder = null/.test(snakeSource),
-    'stopping always releases the slot, so no section can be starved of it',
-  )
-  ok(
-    /rootMargin: '-30% 0px -55% 0px'/.test(snakeSource),
-    'primacy is measured against a reading band, not mere visibility',
-  )
-  ok(
-    /if \(primary && visible\) start\(\)/.test(snakeSource) &&
-      !/else stop\(\)\s*\n\s*\},\s*\n\s*\{ rootMargin/.test(snakeSource),
-    'losing primacy starts a fade instead of cutting the animation',
-  )
+section('Dot grid geometry: pitch, phase and corridors')
 
-  // The snake must ride the existing grid pitch rather than invent its own.
-  const globalCss = readFileSync(path.join(root, 'src/styles/global.css'), 'utf8')
-  const dotField = globalCss.slice(
-    globalCss.indexOf('.dot-field {'),
-    globalCss.indexOf('.dot-field {') + 220,
-  )
+{
+  const { DOT_PITCH, TRACK_GAP, buildCorridors, phaseFor, snapToLattice } = await (async () => {
+    const server = await createServer({ root, logLevel: 'error', server: { middlewareMode: true }, appType: 'custom' })
+    const mod = await server.ssrLoadModule('/src/lib/dotGeometry.ts')
+    await server.close()
+    return mod
+  })()
+
   const tokensCss = readFileSync(path.join(root, 'src/styles/tokens.css'), 'utf8')
-  ok(/--dot-pitch:\s*12px/.test(tokensCss), 'the shared dot pitch token is 12px')
+  const globalCss = readFileSync(path.join(root, 'src/styles/global.css'), 'utf8')
+  const token = /--dot-pitch:\s*(\d+)px/.exec(tokensCss)
   ok(
-    /background-size:\s*var\(--dot-pitch\) var\(--dot-pitch\)/.test(dotField),
-    'the static dot field uses the shared pitch',
+    token !== null && Number(token[1]) === DOT_PITCH,
+    `the shared pitch and the CSS token agree (${DOT_PITCH}px)`,
   )
+
+  const dotField = globalCss.slice(globalCss.indexOf('.dot-field {'), globalCss.indexOf('.dot-field {') + 260)
+  ok(/background-size:\s*var\(--dot-pitch\) var\(--dot-pitch\)/.test(dotField), 'the static dot field draws at the shared pitch')
+  ok(/background-position:\s*center/.test(dotField), 'and is centred, which is what offsets its lattice')
+
+  // The printed lattice starts half the element's own size in from its corner.
+  // This is the arithmetic the snake has to copy, and the reason rounding to
+  // multiples of the pitch puts the snake between the dots.
+  ok(phaseFor(900) === 6, `a 900px band starts its lattice 6px down its own box (${phaseFor(900)})`)
+  ok(phaseFor(902) === 7, `a 902px band starts it 7px down (${phaseFor(902)})`)
+  ok(phaseFor(0) === 0, 'a zero-size box has no phase to apply')
+  ok(snapToLattice(449, phaseFor(900)) === 450, 'a dot snaps onto the printed row below it')
+  ok(snapToLattice(451, phaseFor(900)) === 450, 'and onto the printed row above it')
   ok(
-    /const PITCH = 12\b/.test(readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')),
-    'the snake uses the same 12px pitch as the dot field',
+    snapToLattice(913, phaseFor(900)) === 918 && snapToLattice(913, 0) === 912,
+    'rounding from the corner rather than the centre would sit half a pitch off',
   )
+
+  const band = (top, bottom) => ({ top, bottom, phase: 0 })
+  const strip = buildCorridors([band(0, 800), band(860, 1700)])
+  ok(
+    strip.length === 1 && strip[0].bands.length === 2,
+    'a 60px gap — the toolchain strip between the hero and About — is one corridor, not two',
+  )
+  ok(strip[0].top === 0 && strip[0].bottom === 1700, 'the corridor spans from the first band to the last')
+  ok(buildCorridors([band(0, 800), band(4200, 5000)]).length === 2, 'the five sections between About and Contact are not')
+  ok(buildCorridors([band(0, 800), band(800 + TRACK_GAP + 1, 1700)]).length === 2, 'nor is a gap wider than the limit')
+  ok(buildCorridors([band(0, 800), band(800 + TRACK_GAP, 1700)]).length === 1, 'the join is inclusive at exactly the limit')
+  ok(buildCorridors([]).length === 0, 'with no bands there is nothing to travel in')
 }
 
 section('Reactive dot grid: coverage, alignment and safety')

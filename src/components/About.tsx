@@ -4,8 +4,8 @@ import { SectionHeading } from './SectionHeading'
 
 export function About({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <section className="section section--fx" id="about" aria-labelledby="about-title">
-      <SectionBackdrop motionEnabled={motionEnabled} snake />
+    <section className="section section--fx" id="about" aria-labelledby="about-title" data-snake-band>
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="01"

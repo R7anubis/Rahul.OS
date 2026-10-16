@@ -2804,22 +2804,30 @@
 }
 
 /* --------------------------------------------------------------------------
-   Dot snake — a small inhabitant of the hero's dot field
+   Dot snake — one small inhabitant of the whole page's dot grid
    --------------------------------------------------------------------------
-   Sits inside .hero__bg, which is its own stacking context below the hero
-   content, so it can never cover text or take a pointer event. The mask is a
-   little more generous than the dot field's own so the snake stays visible
-   across the wrap, while still fading out at the periphery rather than
-   stopping dead at an edge.
+   A single fixed layer that sits above the section backgrounds (so it can
+   light up dots that are already printed) and below every content column (so it
+   can never cover text). It draws in document coordinates and clips itself to
+   the sections carrying `data-snake-band`.
    -------------------------------------------------------------------------- */
+/* One snake for the whole page: a single fixed layer that sits above the
+   section backgrounds (so it can light up dots that are already printed) and
+   below every content column (so it can never cover text). It draws in document
+   coordinates and clips itself to the sections carrying `data-snake-band`.
+
+   There is no radial mask any more. It used to fade the snake towards the
+   corners of one section; at viewport size it would fade it out at the left and
+   right screen edges instead, which would make the horizontal wrap read as the
+   snake vanishing and reappearing. */
 .snake {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 0;
   display: block;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  mask-image: radial-gradient(96% 88% at 58% 45%, #000 0%, transparent 100%);
 }
 
 /* --------------------------------------------------------------------------
@@ -2851,9 +2859,9 @@
   opacity: 0.5;
 }
 
-/* Section backdrop: carries the reactive grid and, in the spacious sections,
-   the dot snake. The content column is lifted above it, so nothing is ever
-   covered. Absolutely positioned, so it cannot shift layout. */
+/* Section backdrop: carries the reactive grid. The content column is lifted
+   above it, so nothing is ever covered. Absolutely positioned, so it cannot
+   shift layout. The snake is not here — it is one layer for the whole page. */
 .section__fx {
   position: absolute;
   inset: 0;
