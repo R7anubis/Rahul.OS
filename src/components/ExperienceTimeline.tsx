@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, CornerDownRight } from 'lucide-react'
 import { experience, type ExperienceEntry } from '../data/experience'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
 interface ExperienceTimelineProps {
@@ -72,18 +73,20 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
   }
 
   return (
-    <section className="section" id="experience" aria-labelledby="experience-title">
+    <section className="section section--fx" id="experience" aria-labelledby="experience-title">
+      {/* Grid only. The milestone rail and the detail panel own this section's
+          centre, so it declares no `data-snake-band`: the snake would either be
+          hidden behind them or fight the controls. */}
+      <SectionBackdrop motionEnabled={!reduceMotion} />
       <div className="shell">
         <SectionHeading
           index="03"
           label="Experience"
           id="experience-title"
-          title="A connected sequence, not a list of claims."
+          title="Where I have worked."
           note={
             <p>
-              Dates and titles as listed on the supplied résumé. Where a fact is not on the
-              résumé — the Wylo internship dates, for example — the entry says so instead of
-              guessing. Nothing here implies endorsement by any employer.
+              Full-time roles, one internship and some volunteering — most recent first.
             </p>
           }
         />
@@ -113,18 +116,20 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
                         </span>
                       </span>
                       <span className="milestone__when">
-                        {entry.datesVerified ? entry.dates : 'Dates not listed'}
-                        <ChevronDown
+                        {entry.dates}
+                        {entry.dates ? (
+                          <ChevronDown
                           size={13}
                           aria-hidden="true"
-                          style={{
-                            display: 'block',
-                            marginLeft: 'auto',
-                            marginTop: 2,
-                            transform: expanded ? 'rotate(180deg)' : 'none',
-                            transition: 'transform var(--dur-2) var(--ease)',
-                          }}
-                        />
+                            style={{
+                              display: 'block',
+                              marginLeft: 'auto',
+                              marginTop: 2,
+                              transform: expanded ? 'rotate(180deg)' : 'none',
+                              transition: 'transform var(--dur-2) var(--ease)',
+                            }}
+                          />
+                        ) : null}
                       </span>
                     </button>
                   </li>
@@ -146,10 +151,12 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
                     <h3 className="detail-panel__title">{selected.org}</h3>
                     <p className="milestone__role">{selected.role}</p>
                   </div>
-                  <span className={`chip${selected.datesVerified ? ' chip--ok' : ''}`}>
-                    <span className="chip__dot" aria-hidden="true" />
-                    {selected.datesVerified ? selected.dates : 'Dates unverified'}
-                  </span>
+                  {selected.dates ? (
+                    <span className="chip chip--ok">
+                      <span className="chip__dot" aria-hidden="true" />
+                      {selected.dates}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="detail-panel__body">
@@ -162,10 +169,12 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
                       <dt>Type</dt>
                       <dd>{selected.kind}</dd>
                     </div>
-                    <div>
-                      <dt>Dates</dt>
-                      <dd>{selected.dates}</dd>
-                    </div>
+                    {selected.dates ? (
+                      <div>
+                        <dt>Dates</dt>
+                        <dd>{selected.dates}</dd>
+                      </div>
+                    ) : null}
                   </dl>
 
                   <p className="dim" style={{ fontSize: 'var(--fs-small)' }}>
@@ -188,7 +197,7 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
                 </div>
 
                 <div className="detail-panel__foot">
-                  <span>{selected.contextNote}</span>
+                  {selected.contextNote ? <span>{selected.contextNote}</span> : null}
                   {selected.caseStudySlug ? (
                     <a
                       className="link-arrow"

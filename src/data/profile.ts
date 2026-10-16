@@ -1,7 +1,8 @@
 /**
- * Owner profile — verified, public information only.
- * Everything here comes from the supplied résumé or from Rahul directly.
- * If a fact is not verified, it does not belong in this file.
+ * Owner profile.
+ *
+ * Only facts that are verified appear here: if something is not confirmed, it
+ * is left out rather than approximated.
  */
 
 export interface SocialLink {
@@ -20,11 +21,11 @@ export const profile = {
   firstName: 'Rahul',
   wordmark: 'RAHUL.RAJ',
   system: 'RAHUL.OS',
-  tagline: 'A personal system for projects, ideas and engineering.',
+  tagline: 'Embedded software, technical QA and data science.',
 
-  headline: 'I build at the intersection of data, AI and technology.',
+  headline: 'Embedded software and technical QA, now studying data science at Monash.',
   support:
-    "From embedded systems and automotive ADAS to game technology and applied AI, I'm interested in turning complex technical ideas into useful things.",
+    'Embedded C/C++ on Linux at Tata Elxsi, then technical QA on a AAA build at Rockstar Games India.',
 
   location: 'Melbourne, Australia',
   locationShort: 'Melbourne, AU',
@@ -40,12 +41,12 @@ export const profile = {
     status: 'Currently studying',
   },
 
-  /** Languages listed on the supplied résumé. */
+  /** Languages spoken. */
   languages: ['English', 'Hindi', 'Kannada', 'Tamil'],
 
   /** Short, factual summary used for meta descriptions. */
   summary:
-    'Data science student at Monash University with experience across software QA, embedded engineering and technical problem solving.',
+    'Master of Data Science student at Monash University in Melbourne, with a background in embedded software engineering and technical QA.',
 
   links: [
     {

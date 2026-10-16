@@ -156,20 +156,36 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Dot backgrounds
+   One pitch shared by the static `.dot-field` texture and the reactive
+   `.pointer-grid`. Identical pitch *and* identical `background-position` are
+   what make the reactive layer light up the existing dots instead of printing a
+   second, offset grid on top of them.
+   --------------------------------------------------------------------------- */
+:root {
+  --dot-pitch: 12px;
+}
+
+/* ---------------------------------------------------------------------------
    Pointer layer + reveal tokens
    The custom cursor only ever renders when html[data-cursor="custom"] is set
    by the capability-gated hook, so these values are inert until then.
    --------------------------------------------------------------------------- */
 :root {
-  --cursor-dot: 4px;
-  --cursor-ring: 22px;
-  --cursor-ring-action: 34px;
+  /* Precision reticle: a bracket box, not a circle. `--reticle-gap` is the
+     clearance between the centre pixel and the inner end of each corner arm.
+     The box is derived so the arms, gap and pixel always agree. */
+  --reticle-arm: 6px;
+  --reticle-gap: 4px;
+  --reticle-size: calc(2 * var(--reticle-arm) + 2 * var(--reticle-gap) + 3px);
+  --reticle-ink: rgba(255, 255, 255, 0.72);
   --cursor-hairline: rgba(255, 255, 255, 0.16);
   --reveal-shift: 12px;
   --reveal-dur: 420ms;
 }
 
 [data-theme='light'] {
+  --reticle-ink: rgba(16, 16, 18, 0.62);
   --cursor-hairline: rgba(16, 16, 18, 0.2);
 }
 

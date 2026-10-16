@@ -9,8 +9,8 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { profile } from '../data/profile'
-import { PointerGrid } from './PointerGrid'
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
 const linkIcons = {
@@ -30,18 +30,23 @@ export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
   const { state, copy, isCopied, isError } = useCopyToClipboard()
 
   return (
-    <section className="section contact" id="contact" aria-labelledby="contact-title">
-      <PointerGrid className="pointer-grid--contact" motionEnabled={motionEnabled} />
+    <section
+      className="section section--fx contact"
+      id="contact"
+      aria-labelledby="contact-title"
+      data-snake-band
+    >
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="07"
           label="Contact"
           id="contact-title"
-          title="Say hello, or send something worth building."
+          title="Get in touch."
           note={
             <p>
-              Email is the reliable route. The other links below are the verified accounts —
-              no contact form, because there is nothing behind this site to receive one.
+              Email is the reliable route. There is no contact form — nothing on this site
+              could receive one.
             </p>
           }
         />
@@ -49,12 +54,12 @@ export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
         <div className="contact__grid" data-reveal>
           <div>
             <p className="contact__title">
-              Let&rsquo;s talk about <em>data, AI, or systems</em> that have to work.
+              Open to <em>part-time and contract work</em> alongside study.
             </p>
 
             <p className="dim" style={{ maxWidth: '48ch' }}>
-              I am based in Melbourne and studying at Monash, so I am open to part-time and
-              contract work alongside study. The fastest way to reach me is email.
+              I am based in Melbourne and studying at Monash. Data science, software, QA and
+              embedded work all interest me — email is the fastest way to reach me.
             </p>
 
             <div className="contact__actions">
@@ -85,7 +90,7 @@ export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
                 <i />
                 <i />
               </span>
-              <span>contact — rahul@rahul.os</span>
+              <span>{profile.email}</span>
               <span aria-hidden="true">zsh</span>
             </div>
 

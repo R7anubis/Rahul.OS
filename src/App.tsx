@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { About } from './components/About'
 import { CommandPalette } from './components/CommandPalette'
 import { Contact } from './components/Contact'
+import { DotSnake } from './components/DotSnake'
 import { Education } from './components/Education'
 import { ExperienceTimeline } from './components/ExperienceTimeline'
 import { Footer } from './components/Footer'
@@ -60,14 +61,15 @@ export default function App() {
       ? {
           title: `${project.title} — ${project.subtitle} · RAHUL.OS`,
           description: project.summary,
+          imageAlt: `RAHUL.OS cover card with a monochrome portrait of Rahul Raj. ${project.title} — ${project.subtitle}.`,
         }
       : route.kind === 'not-found'
         ? {
-            title: 'Route not found · RAHUL.OS',
-            description: 'That address is not part of RAHUL.OS. Available sections and projects are listed here.',
+            title: 'Page not found · RAHUL.OS',
+            description: 'No page exists at that address. Every section and project on this site is listed here.',
           }
         : {
-            title: 'RAHUL.OS — Rahul Raj · Data science, AI & game technology',
+            title: 'RAHUL.OS — Rahul Raj · Data science, embedded software and QA',
             description: `${profile.summary} Based in ${profile.location}.`,
           },
   )
@@ -125,13 +127,18 @@ export default function App() {
           <>
             <Hero onNavigate={navigate} motionEnabled={!reduceMotion} />
             <Toolchain />
-            <About />
-            <ProjectGrid onOpenProject={openProject} />
+            <About motionEnabled={!reduceMotion} />
+            <ProjectGrid onOpenProject={openProject} motionEnabled={!reduceMotion} />
             <ExperienceTimeline onNavigate={navigate} reduceMotion={reduceMotion} />
-            <Education />
+            <Education motionEnabled={!reduceMotion} />
             <Skills />
             <InterestMap onNavigate={navigate} />
             <Contact motionEnabled={!reduceMotion} />
+
+            {/* One snake for the whole page. It is mounted last so it paints
+                above the sections' dot textures, and it stays behind the
+                content columns, which are lifted above it. */}
+            <DotSnake motionEnabled={!reduceMotion} />
           </>
         ) : null}
 

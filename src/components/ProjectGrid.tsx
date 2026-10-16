@@ -2,15 +2,17 @@ import { useMemo, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { projectCategories, projects, type ProjectCategoryId } from '../data/projects'
 import { ProjectCard } from './ProjectCard'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
 interface ProjectGridProps {
   onOpenProject: (slug: string) => void
+  motionEnabled: boolean
 }
 
 type Filter = ProjectCategoryId | 'all'
 
-export function ProjectGrid({ onOpenProject }: ProjectGridProps) {
+export function ProjectGrid({ onOpenProject, motionEnabled }: ProjectGridProps) {
   const [filter, setFilter] = useState<Filter>('all')
 
   const counts = useMemo(() => {
@@ -29,7 +31,8 @@ export function ProjectGrid({ onOpenProject }: ProjectGridProps) {
   const activeLabel = projectCategories.find((category) => category.id === filter)?.label ?? 'All'
 
   return (
-    <section className="section" id="projects" aria-labelledby="projects-title">
+    <section className="section section--fx" id="projects" aria-labelledby="projects-title">
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="02"
@@ -37,16 +40,10 @@ export function ProjectGrid({ onOpenProject }: ProjectGridProps) {
           id="projects-title"
           title="Four entries, described at the stage they actually reached."
           note={
-            <>
-              <p>
-                Two of these come from study and side exploration, one is an academic
-                proposal, and one is a description of a job.
-              </p>
-              <p style={{ marginTop: '0.6rem' }}>
-                Every visual below is an <strong>original diagram drawn for this site</strong> —
-                there are no project screenshots, and nothing here is a proprietary interface.
-              </p>
-            </>
+            <p>
+              Two from study and personal work, one an academic proposal, and one a
+              description of a job.
+            </p>
           }
         />
 

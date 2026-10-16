@@ -7,21 +7,24 @@ interface PointerLayerProps {
 }
 
 /**
- * Enhanced pointer layer: a precision cursor, contextual states, and short
- * click ripples.
+ * Precision reticle pointer layer.
  *
- * Design constraints this respects:
+ * The cursor is a bracket box: four angular corner arms around a 3px accent
+ * centre pixel, with mid-edge ticks that only appear over interactive targets.
+ * It deliberately avoids the usual circular follower / glow / trailing ring.
+ *
+ * Constraints this respects:
  *  - progressive enhancement only. `data-cursor="custom"` is set on <html> by
  *    this component *and* removed on unmount or when capability drops, so the
  *    native cursor is only ever hidden while a replacement is on screen;
  *  - capability-gated: fine pointer + hover, no reduced-motion request, motion
  *    toggle on, and no touch/pen contact. Anything else leaves the native
- *    cursor alone;
- *  - over text the layer draws an I-beam bar instead of a ring, so the
- *    selection affordance is never lost;
- *  - every write happens inside one requestAnimationFrame loop using
- *    transforms, and the layer renders nothing at all when it is not enabled —
- *    no listeners, no idle animation, no cost.
+ *    cursor alone and this component renders nothing at all;
+ *  - over text the reticle withdraws and an I-beam appears, so the selection
+ *    affordance is never lost;
+ *  - every position write happens inside one requestAnimationFrame loop using
+ *    transforms. A click adds no DOM nodes — it toggles a single attribute for
+ *    160ms, so holding the button down cannot flood the layer.
  */
 
 const ACTION_SELECTOR = 'a, button, summary, select, [role="button"], [data-cursor="action"]'
@@ -29,14 +32,13 @@ const TEXT_SELECTOR =
   'p, h1, h2, h3, h4, h5, h6, li, dt, dd, blockquote, code, figcaption, input, textarea, [contenteditable]'
 const INSPECT_SELECTOR = '[data-cursor-inspect]'
 
-const MAX_RIPPLES = 4
+const PRESS_MS = 160
 
 export function PointerLayer({ motionEnabled }: PointerLayerProps) {
   const { enabled } = usePointerCapability(motionEnabled)
 
   const rootRef = useRef<HTMLDivElement>(null)
-  const dotRef = useRef<HTMLSpanElement>(null)
-  const ringRef = useRef<HTMLSpanElement>(null)
+  const reticleRef = useRef<HTMLSpanElement>(null)
   const barRef = useRef<HTMLSpanElement>(null)
   const crossRef = useRef<HTMLDivElement>(null)
   const crossXRef = useRef<HTMLSpanElement>(null)
@@ -61,21 +63,16 @@ export function PointerLayer({ motionEnabled }: PointerLayerProps) {
       // printing coordinates there would be decoration.
       inspectCoords: false,
       frame: 0,
+      pressTimer: 0,
     }
 
     const apply = () => {
       state.frame = 0
       const { x, y } = state
+      const translate = `translate3d(${x}px, ${y}px, 0)`
 
-      if (dotRef.current) {
-        dotRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      }
-      if (ringRef.current) {
-        ringRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      }
-      if (barRef.current) {
-        barRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`
-      }
+      if (reticleRef.current) reticleRef.current.style.transform = translate
+      if (barRef.current) barRef.current.style.transform = translate
 
       if (crossRef.current && state.inspectEl) {
         const rect = state.inspectEl.getBoundingClientRect()
@@ -156,20 +153,15 @@ export function PointerLayer({ motionEnabled }: PointerLayerProps) {
       }
     }
 
-    // Click ripples: short accent pulses, capped so holding the button down
-    // cannot flood the DOM.
+    // Press acknowledgement: an attribute flip, cleared on a timer. No nodes,
+    // no animation frames, nothing that can accumulate.
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType === 'touch' || !rootRef.current) return
-      if (rootRef.current.querySelectorAll('.pointer-ripple').length >= MAX_RIPPLES) return
-
-      const ripple = document.createElement('span')
-      ripple.className = 'pointer-ripple'
-      ripple.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`
-      ripple.setAttribute('aria-hidden', 'true')
-      rootRef.current.appendChild(ripple)
-      const remove = () => ripple.remove()
-      ripple.addEventListener('animationend', remove, { once: true })
-      window.setTimeout(remove, 700)
+      rootRef.current.dataset.press = 'true'
+      window.clearTimeout(state.pressTimer)
+      state.pressTimer = window.setTimeout(() => {
+        if (rootRef.current) rootRef.current.dataset.press = 'false'
+      }, PRESS_MS)
     }
 
     const onPointerLeaveDocument = () => {
@@ -187,6 +179,7 @@ export function PointerLayer({ motionEnabled }: PointerLayerProps) {
     return () => {
       delete rootElement.dataset.cursor
       if (state.frame) window.cancelAnimationFrame(state.frame)
+      window.clearTimeout(state.pressTimer)
       window.removeEventListener('pointerover', onPointerOver)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerout', onPointerOut)
@@ -199,17 +192,33 @@ export function PointerLayer({ motionEnabled }: PointerLayerProps) {
   if (!enabled) return null
 
   return (
-    <div className="pointer-layer" ref={rootRef} data-context="default" data-visible="false" aria-hidden="true">
+    <div
+      className="pointer-layer"
+      ref={rootRef}
+      data-context="default"
+      data-visible="false"
+      data-press="false"
+      aria-hidden="true"
+    >
       {/* hairlines that span whatever diagram is under the pointer */}
       <div className="pointer-cross" ref={crossRef}>
         <span className="pointer-cross__x" ref={crossXRef} />
         <span className="pointer-cross__y" ref={crossYRef} />
         <span className="pointer-cross__readout" ref={crossLabelRef} />
       </div>
-      <span className="pointer-ring" ref={ringRef}>
-        <span className="pointer-ring__mark" />
+
+      <span className="pointer-reticle" ref={reticleRef}>
+        <i className="pointer-reticle__arm pointer-reticle__arm--tl" />
+        <i className="pointer-reticle__arm pointer-reticle__arm--tr" />
+        <i className="pointer-reticle__arm pointer-reticle__arm--bl" />
+        <i className="pointer-reticle__arm pointer-reticle__arm--br" />
+        <i className="pointer-reticle__tick pointer-reticle__tick--n" />
+        <i className="pointer-reticle__tick pointer-reticle__tick--s" />
+        <i className="pointer-reticle__tick pointer-reticle__tick--w" />
+        <i className="pointer-reticle__tick pointer-reticle__tick--e" />
+        <i className="pointer-reticle__pixel" />
       </span>
-      <span className="pointer-dot" ref={dotRef} />
+
       <span className="pointer-bar" ref={barRef} />
     </div>
   )

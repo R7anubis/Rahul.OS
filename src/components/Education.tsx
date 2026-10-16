@@ -1,20 +1,21 @@
 import { BookOpen, GraduationCap } from 'lucide-react'
 import { development, education } from '../data/education'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
-export function Education() {
+export function Education({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <section className="section" id="education" aria-labelledby="education-title">
+    <section className="section section--fx" id="education" aria-labelledby="education-title">
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="04"
           label="Education"
           id="education-title"
-          title="Two degrees, one direction."
+          title="Qualifications and short courses."
           note={
             <p>
-              Degree wording and periods follow the supplied résumé. No grades, honours or
-              awards are listed, because none were supplied.
+              The Master of Data Science is in progress; the B.Tech is complete.
             </p>
           }
         />
@@ -48,7 +49,7 @@ export function Education() {
         <div className="dev-list">
           <div className="dev-list__head mono">
             <span>Professional development</span>
-            <span>LinkedIn Learning · as listed on the résumé</span>
+            <span>LinkedIn Learning</span>
           </div>
           <div className="dev-list__rows">
             {development.map((course) => (

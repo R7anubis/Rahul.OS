@@ -206,6 +206,7 @@
   flex: none;
 }
 .brand__text {
+  --wm-track: 0.04em;
   font-family: var(--font-mono);
   font-size: 0.9rem;
   font-weight: 600;
@@ -215,6 +216,26 @@
 .brand__text span {
   color: var(--text-faint);
 }
+/* --------------------------------------------------------------------------
+   Wordmark — RAHUL.RAJ, one text run
+   --------------------------------------------------------------------------
+   The period belongs to the word, so it has to sit flush against the letter
+   before it. Two things used to break that: the footer mark is an inline-flex
+   container whose gap was applied between the bare "RAHUL" text node and the
+   ".RAJ" span (rendering "RAHUL .RAJ"), and letter-spacing adds a trailing
+   space after the L in every context. `--wm-track` carries each context's
+   tracking so the dot can reclaim exactly that much.
+   -------------------------------------------------------------------------- */
+.wordmark {
+  display: inline;
+}
+.wordmark__dot {
+  margin-left: calc(-1 * var(--wm-track, 0em));
+}
+.footer__mark-dot {
+  color: var(--text-faint);
+}
+
 .brand__sub {
   display: none;
   font-family: var(--font-mono);
@@ -2081,6 +2102,7 @@
   }
 }
 .footer__mark {
+  --wm-track: 0.02em;
   font-family: var(--font-mono);
   font-size: 1.05rem;
   font-weight: 600;
@@ -2481,11 +2503,64 @@
   display: none;
 }
 
-/* Mobile interest map: the packed canvas needs width to stay legible, so the
-   list-based index becomes the primary control on small screens. */
+/* --------------------------------------------------------------------------
+   Interest map on narrow screens
+   --------------------------------------------------------------------------
+   The packed canvas needs width to keep six labels readable, so rather than
+   hiding the diagram the nodes reflow into a column (same six nodes, same six
+   connections) and the edges become a rail: a vertical spine on the left with
+   a stub into each node it connects to. Row height is published from the
+   component as --imap-row, so the rail geometry and the layout cannot drift.
+   -------------------------------------------------------------------------- */
+.imap__svg--mobile {
+  display: none;
+}
+.imap__rail path,
+.imap__rail circle {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transition: stroke var(--dur-2) var(--ease);
+}
+.imap__rail circle {
+  fill: var(--line-strong);
+  stroke: none;
+}
+.imap__rail--active path {
+  stroke: var(--accent);
+}
+.imap__rail--active circle {
+  fill: var(--accent);
+}
+
 @media (max-width: 767px) {
   .imap__canvas {
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: auto;
+    height: calc(var(--imap-rows, 6) * var(--imap-row, 56px));
+  }
+  .imap__svg--packed {
     display: none;
+  }
+  .imap__svg--mobile {
+    display: block;
+  }
+  .imap__nodebutton {
+    position: static;
+    transform: none;
+    flex: 1 1 0;
+    min-height: 0;
+    margin-left: 26%;
+    justify-content: flex-start;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
+  .imap__nodebutton:hover,
+  .imap__nodebutton:focus-visible {
+    position: relative;
+    z-index: 1;
   }
 }
 
@@ -2529,7 +2604,14 @@
 }
 
 /* --------------------------------------------------------------------------
-   Pointer layer — precision cursor, contextual states, click ripples
+   Pointer layer — precision reticle, contextual states
+   --------------------------------------------------------------------------
+   A bracket box rather than a circular follower: four angular corner arms, a
+   3px accent centre pixel, and four mid-edge ticks that only appear where they
+   carry meaning. Over text the reticle is replaced by an I-beam so the
+   selection affordance survives; over a diagram the existing hairline
+   crosshair still applies. No trailing rings, no glow, no idle animation —
+   every element is parked in one transform written inside a single frame.
    -------------------------------------------------------------------------- */
 .pointer-layer {
   position: fixed;
@@ -2538,51 +2620,104 @@
   pointer-events: none;
   contain: layout paint;
 }
-.pointer-layer[data-visible='false'] .pointer-dot,
-.pointer-layer[data-visible='false'] .pointer-ring,
-.pointer-layer[data-visible='false'] .pointer-cross {
+.pointer-layer[data-visible='false'] .pointer-reticle,
+.pointer-layer[data-visible='false'] .pointer-cross,
+.pointer-layer[data-visible='false'] .pointer-bar {
   opacity: 0;
 }
 
-.pointer-dot,
-.pointer-ring,
+.pointer-reticle,
 .pointer-bar {
   position: absolute;
   top: 0;
   left: 0;
   will-change: transform;
-  transition: opacity var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease),
-    background-color var(--dur-2) var(--ease);
 }
 
-/* core dot */
-.pointer-dot {
-  width: var(--cursor-dot);
-  height: var(--cursor-dot);
-  margin: calc(var(--cursor-dot) / -2) 0 0 calc(var(--cursor-dot) / -2);
-  border-radius: 50%;
-  background: var(--text);
-  opacity: 0.9;
+/* the bracket box */
+.pointer-reticle {
+  width: var(--reticle-size);
+  height: var(--reticle-size);
+  margin: calc(var(--reticle-size) / -2) 0 0 calc(var(--reticle-size) / -2);
+  transition: opacity var(--dur-2) var(--ease);
+}
+.pointer-reticle__arm {
+  position: absolute;
+  width: var(--reticle-arm);
+  height: var(--reticle-arm);
+  border: 0 solid var(--reticle-ink);
+  transition: border-color var(--dur-2) var(--ease), width var(--dur-2) var(--ease),
+    height var(--dur-2) var(--ease);
+}
+.pointer-reticle__arm--tl {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+.pointer-reticle__arm--tr {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+.pointer-reticle__arm--bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+.pointer-reticle__arm--br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
 }
 
-/* thin ring with a corner registration mark */
-.pointer-ring {
-  display: grid;
-  place-items: center;
-  width: var(--cursor-ring);
-  height: var(--cursor-ring);
-  margin: calc(var(--cursor-ring) / -2) 0 0 calc(var(--cursor-ring) / -2);
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  opacity: 0.85;
-}
-.pointer-ring__mark {
+/* centre pixel — the single accent mark in the cursor */
+.pointer-reticle__pixel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 3px;
   height: 3px;
-  border: 1px solid var(--line-strong);
-  transform: rotate(45deg);
-  transition: opacity var(--dur-2) var(--ease);
+  margin: -1.5px 0 0 -1.5px;
+  background: var(--accent);
+  transition: box-shadow var(--dur-2) var(--ease);
+}
+
+/* mid-edge ticks: hidden until the context gives them meaning */
+.pointer-reticle__tick {
+  position: absolute;
+  background: var(--reticle-ink);
   opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+.pointer-reticle__tick--n,
+.pointer-reticle__tick--s {
+  left: 50%;
+  width: 1px;
+  height: 3px;
+  margin-left: -0.5px;
+}
+.pointer-reticle__tick--n {
+  top: -5px;
+}
+.pointer-reticle__tick--s {
+  bottom: -5px;
+}
+.pointer-reticle__tick--w,
+.pointer-reticle__tick--e {
+  top: 50%;
+  height: 1px;
+  width: 3px;
+  margin-top: -0.5px;
+}
+.pointer-reticle__tick--w {
+  left: -5px;
+}
+.pointer-reticle__tick--e {
+  right: -5px;
 }
 
 /* I-beam substitute: keeps the text-selection affordance intact */
@@ -2592,42 +2727,41 @@
   margin: -10px 0 0 0;
   background: var(--text);
   opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
 }
 
 /* --- contextual states --- */
-.pointer-layer[data-context='action'] .pointer-ring {
-  width: var(--cursor-ring-action);
-  height: var(--cursor-ring-action);
-  margin: calc(var(--cursor-ring-action) / -2) 0 0 calc(var(--cursor-ring-action) / -2);
-  border-color: var(--accent-line);
-  border-radius: var(--radius-1);
-}
-.pointer-layer[data-context='action'] .pointer-dot {
-  background: var(--accent);
-}
-.pointer-layer[data-context='action'] .pointer-ring__mark {
-  opacity: 1;
+/* action: the box opens slightly and switches to accent ink */
+.pointer-layer[data-context='action'] .pointer-reticle__arm {
   border-color: var(--accent);
+  width: calc(var(--reticle-arm) + 2px);
+  height: calc(var(--reticle-arm) + 2px);
+}
+.pointer-layer[data-context='action'] .pointer-reticle__tick {
+  opacity: 0.85;
 }
 
-.pointer-layer[data-context='text'] .pointer-dot,
-.pointer-layer[data-context='text'] .pointer-ring {
+/* text: reticle withdrawn, I-beam only */
+.pointer-layer[data-context='text'] .pointer-reticle {
   opacity: 0;
 }
 .pointer-layer[data-context='text'] .pointer-bar {
   opacity: 0.9;
 }
 
-.pointer-layer[data-context='inspect'] .pointer-dot {
-  background: var(--accent);
-}
-.pointer-layer[data-context='inspect'] .pointer-ring {
+/* inspect: brackets snap tight and square, matching the diagram's geometry */
+.pointer-layer[data-context='inspect'] .pointer-reticle__arm {
   border-color: var(--accent);
-  border-radius: 0;
-  width: 15px;
-  height: 15px;
-  margin: -7.5px 0 0 -7.5px;
-  opacity: 0.9;
+  width: 4px;
+  height: 4px;
+}
+
+/* press: one short confirmation, no nodes added to the DOM */
+.pointer-layer[data-press='true'] .pointer-reticle__pixel {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.pointer-layer[data-press='true'] .pointer-reticle__arm {
+  border-color: var(--accent);
 }
 
 /* hairlines spanning the diagram under the pointer */
@@ -2669,45 +2803,53 @@
   white-space: pre;
 }
 
-/* click ripple */
-/* The wrapper carries the pointer position as an inline transform; the pulse
-   is animated on the pseudo-element so the two never fight over `transform`. */
-.pointer-ripple {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 26px;
-  height: 26px;
-  margin: -13px 0 0 -13px;
-}
-.pointer-ripple::after {
-  content: '';
-  position: absolute;
+/* --------------------------------------------------------------------------
+   Dot snake — one small inhabitant of the whole page's dot grid
+   --------------------------------------------------------------------------
+   A single fixed layer that sits above the section backgrounds (so it can
+   light up dots that are already printed) and below every content column (so it
+   can never cover text). It draws in document coordinates and clips itself to
+   the sections carrying `data-snake-band`.
+   -------------------------------------------------------------------------- */
+/* One snake for the whole page: a single fixed layer that sits above the
+   section backgrounds (so it can light up dots that are already printed) and
+   below every content column (so it can never cover text). It draws in document
+   coordinates and clips itself to the sections carrying `data-snake-band`.
+
+   There is no radial mask any more. It used to fade the snake towards the
+   corners of one section; at viewport size it would fade it out at the left and
+   right screen edges instead, which would make the horizontal wrap read as the
+   snake vanishing and reappearing. */
+.snake {
+  position: fixed;
   inset: 0;
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-  animation: pointer-ripple var(--dur-3) var(--ease-out) forwards;
-}
-@keyframes pointer-ripple {
-  from {
-    opacity: 0.8;
-    transform: scale(0.35);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.2);
-  }
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* --------------------------------------------------------------------------
    Pointer-reactive grid
+   --------------------------------------------------------------------------
+   The same dot pattern as `.dot-field`, revealed only in a 240px disc around
+   the pointer. Pitch and `background-position` are deliberately identical to
+   the static texture, so in a section that already has one the reactive layer
+   brightens those dots in place rather than printing a second, offset grid.
+   Sections without a static texture simply get the dots on demand.
+
+   Placed as a direct child of the section (or inside `.section__fx`), behind
+   the content column. It never takes a pointer event, and it is hidden below
+   767px where hover is not the interaction.
    -------------------------------------------------------------------------- */
 .pointer-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px);
-  background-size: 13px 13px;
+  background-size: var(--dot-pitch) var(--dot-pitch);
+  background-position: center;
   opacity: 0;
   transition: opacity var(--dur-3) var(--ease);
   mask-image: radial-gradient(240px circle at var(--px, 50%) var(--py, 50%), #000 0%, transparent 72%);
@@ -2716,15 +2858,17 @@
 .pointer-grid[data-active='true'] {
   opacity: 0.5;
 }
-.pointer-grid--hero {
-  background-size: 14px 14px;
-}
-.pointer-grid--contact {
+
+/* Section backdrop: carries the reactive grid. The content column is lifted
+   above it, so nothing is ever covered. Absolutely positioned, so it cannot
+   shift layout. The snake is not here — it is one layer for the whole page. */
+.section__fx {
+  position: absolute;
   inset: 0;
-  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
 }
-/* Keep the reactive grid beneath the content it sits behind. */
-.contact > .shell {
+.section--fx > .shell {
   position: relative;
   z-index: 1;
 }
@@ -2918,6 +3062,19 @@
   .diagram__figure .fig [data-part]:hover {
     opacity: 1;
   }
+}
+
+/* Hover previews a stage without moving the selection, so it is styled as a
+   hint rather than as a second selected state. */
+.diagram__stage[data-preview='true'] {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+.diagram__readout-flag {
+  color: var(--accent);
+}
+.diagram__stage[aria-pressed='true'][data-preview='true'] {
+  border-color: var(--accent);
 }
 
 /* --------------------------------------------------------------------------

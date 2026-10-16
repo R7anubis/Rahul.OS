@@ -10,11 +10,10 @@ export function Skills() {
           index="05"
           label="Skills"
           id="skills-title"
-          title="Grouped by area, never scored out of ten."
+          title="What I work with."
           note={
             <p>
-              No percentage bars, no proficiency meters — a meter would invent a number that
-              nothing on the résumé supports. Tags show what has been worked with and where.
+              Grouped by area, with the tools and topics that belong to each.
             </p>
           }
         />

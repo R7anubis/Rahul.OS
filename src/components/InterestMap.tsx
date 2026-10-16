@@ -10,6 +10,28 @@ interface InterestMapProps {
 }
 
 /**
+ * Narrow-screen order for the same six nodes.
+ *
+ * The packed canvas needs width to keep six labels legible, so on small
+ * screens the nodes reflow into a column and the edges are drawn as a rail
+ * instead of being hidden. This order is chosen so five of the six connections
+ * join neighbouring rows; only AI/ML–Software has to span a gap. The list below
+ * the map keeps the data order, and the buttons stay in data order in the DOM —
+ * `order` only moves them visually.
+ */
+const MOBILE_ORDER = [
+  'data-science',
+  'ai-ml',
+  'embedded',
+  'automotive',
+  'gaming',
+  'software',
+] as const
+const ROW_PX = 56
+const RAIL_END = 26
+const RAIL_START = 7
+
+/**
  * Connected-node interest map.
  *
  * Accessibility: the visual canvas is decorative; the controls are real
@@ -30,6 +52,13 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
 
 
   const byId = (id: string) => interestNodes.find((node) => node.id === id)
+
+  const mobileIndex = (id: string) => {
+    const index = MOBILE_ORDER.indexOf(id as (typeof MOBILE_ORDER)[number])
+    return index < 0 ? MOBILE_ORDER.length : index
+  }
+  /** Row centre in the mobile rail's own coordinate space (1 unit = 1px). */
+  const rowY = (id: string) => (mobileIndex(id) + 0.5) * ROW_PX
 
   const select = useCallback((id: string) => setSelectedId(id), [])
 
@@ -82,12 +111,10 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
           index="06"
           label="Interest map"
           id="interests-title"
-          title="Six directions, and how they feed each other."
+          title="Six interests, and where they cross."
           note={
             <p>
-              A visualisation of interests and their connections — <strong>not</strong> a claim
-              that every node is a professional specialisation. Each node links to the work or
-              experience behind it.
+              Each node links to the project or job behind it.
             </p>
           }
         />
@@ -99,8 +126,51 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
               role="group"
               aria-label="Interest map — select a node. Arrow keys move between nodes."
               onKeyDown={onCanvasKeyDown}
+              style={
+                {
+                  '--imap-row': `${ROW_PX}px`,
+                  '--imap-rows': MOBILE_ORDER.length,
+                } as React.CSSProperties
+              }
             >
-              <svg className="imap__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {/* Narrow screens: same nodes, same six connections, drawn as a
+                  rail so nothing is hidden and no label is squeezed. */}
+              <svg
+                className="imap__svg imap__svg--mobile"
+                viewBox={`0 0 100 ${MOBILE_ORDER.length * ROW_PX}`}
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                {interestEdges.map(([fromId, toId], lane) => {
+                  const y1 = rowY(fromId)
+                  const y2 = rowY(toId)
+                  const railX = RAIL_START + (lane % 4) * 3.6
+                  const active = focusId === fromId || focusId === toId
+                  return (
+                    <g
+                      key={`m-${fromId}-${toId}`}
+                      className={`imap__rail${active ? ' imap__rail--active' : ''}`}
+                    >
+                      <path
+                        d={`M ${railX} ${y1} C ${railX - 3.4} ${y1 + (y2 - y1) * 0.4}, ${
+                          railX - 3.4
+                        } ${y1 + (y2 - y1) * 0.6}, ${railX} ${y2}`}
+                      />
+                      <path d={`M ${railX} ${y1} L ${RAIL_END} ${y1}`} />
+                      <path d={`M ${railX} ${y2} L ${RAIL_END} ${y2}`} />
+                      <circle cx={railX} cy={y1} r="1" />
+                      <circle cx={railX} cy={y2} r="1" />
+                    </g>
+                  )
+                })}
+              </svg>
+
+              <svg
+                className="imap__svg imap__svg--packed"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
                 {interestEdges.map(([fromId, toId]) => {
                   const from = byId(fromId)
                   const to = byId(toId)
@@ -135,7 +205,13 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                   key={node.id}
                   type="button"
                   className="imap__nodebutton"
-                  style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                  style={
+                    {
+                      left: `${node.x}%`,
+                      top: `${node.y}%`,
+                      order: mobileIndex(node.id),
+                    } as React.CSSProperties
+                  }
                   aria-pressed={selected?.id === node.id}
                   data-lit={isLit(node.id) ? 'true' : undefined}
                   ref={(element) => {
@@ -182,7 +258,7 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
         {/* Accessible, list-based alternative — always present, not hidden. */}
         <div className="imap__index">
           <div className="imap__index-head mono">
-            <span>Index — same six interests, as a list</span>
+            <span>All six, as a list</span>
             <span>Select to load details</span>
           </div>
           <ul className="imap__index-list">

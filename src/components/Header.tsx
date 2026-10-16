@@ -89,7 +89,8 @@ export function Header({
         <a className="brand" href="#top" onClick={goToSection('top')}>
           <DotMark />
           <span className="brand__text">
-            RAHUL<span>.RAJ</span>
+            RAHUL
+            <span className="wordmark__dot">.RAJ</span>
           </span>
           <span className="brand__sub">Personal system</span>
         </a>
