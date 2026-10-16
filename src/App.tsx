@@ -126,10 +126,10 @@ export default function App() {
           <>
             <Hero onNavigate={navigate} motionEnabled={!reduceMotion} />
             <Toolchain />
-            <About />
-            <ProjectGrid onOpenProject={openProject} />
+            <About motionEnabled={!reduceMotion} />
+            <ProjectGrid onOpenProject={openProject} motionEnabled={!reduceMotion} />
             <ExperienceTimeline onNavigate={navigate} reduceMotion={reduceMotion} />
-            <Education />
+            <Education motionEnabled={!reduceMotion} />
             <Skills />
             <InterestMap onNavigate={navigate} />
             <Contact motionEnabled={!reduceMotion} />

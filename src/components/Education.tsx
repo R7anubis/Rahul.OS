@@ -1,10 +1,12 @@
 import { BookOpen, GraduationCap } from 'lucide-react'
 import { development, education } from '../data/education'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
-export function Education() {
+export function Education({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <section className="section" id="education" aria-labelledby="education-title">
+    <section className="section section--fx" id="education" aria-labelledby="education-title">
+      <SectionBackdrop motionEnabled={motionEnabled} />
       <div className="shell">
         <SectionHeading
           index="04"

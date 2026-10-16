@@ -33,7 +33,7 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
       <div className="hero__bg">
         <span className="dot-field" />
         <DotSnake motionEnabled={motionEnabled} />
-        <PointerGrid className="pointer-grid--hero" motionEnabled={motionEnabled} />
+        <PointerGrid motionEnabled={motionEnabled} />
         <SignalMotif />
       </div>
 

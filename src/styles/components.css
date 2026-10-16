@@ -2824,13 +2824,24 @@
 
 /* --------------------------------------------------------------------------
    Pointer-reactive grid
+   --------------------------------------------------------------------------
+   The same dot pattern as `.dot-field`, revealed only in a 240px disc around
+   the pointer. Pitch and `background-position` are deliberately identical to
+   the static texture, so in a section that already has one the reactive layer
+   brightens those dots in place rather than printing a second, offset grid.
+   Sections without a static texture simply get the dots on demand.
+
+   Placed as a direct child of the section (or inside `.section__fx`), behind
+   the content column. It never takes a pointer event, and it is hidden below
+   767px where hover is not the interaction.
    -------------------------------------------------------------------------- */
 .pointer-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px);
-  background-size: 13px 13px;
+  background-size: var(--dot-pitch) var(--dot-pitch);
+  background-position: center;
   opacity: 0;
   transition: opacity var(--dur-3) var(--ease);
   mask-image: radial-gradient(240px circle at var(--px, 50%) var(--py, 50%), #000 0%, transparent 72%);
@@ -2839,15 +2850,17 @@
 .pointer-grid[data-active='true'] {
   opacity: 0.5;
 }
-.pointer-grid--hero {
-  background-size: 14px 14px;
-}
-.pointer-grid--contact {
+
+/* Section backdrop: carries the reactive grid and, in the spacious sections,
+   the dot snake. The content column is lifted above it, so nothing is ever
+   covered. Absolutely positioned, so it cannot shift layout. */
+.section__fx {
+  position: absolute;
   inset: 0;
-  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
 }
-/* Keep the reactive grid beneath the content it sits behind. */
-.contact > .shell {
+.section--fx > .shell {
   position: relative;
   z-index: 1;
 }

@@ -206,7 +206,7 @@ hr {
 /* ---- dotted + grid textures -------------------------------------------- */
 .dot-field {
   background-image: radial-gradient(var(--dot) 1px, transparent 1.05px);
-  background-size: 12px 12px;
+  background-size: var(--dot-pitch) var(--dot-pitch);
   background-position: center;
 }
 

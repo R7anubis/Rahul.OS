@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, CornerDownRight } from 'lucide-react'
 import { experience, type ExperienceEntry } from '../data/experience'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
 interface ExperienceTimelineProps {
@@ -72,7 +73,10 @@ export function ExperienceTimeline({ onNavigate, reduceMotion }: ExperienceTimel
   }
 
   return (
-    <section className="section" id="experience" aria-labelledby="experience-title">
+    <section className="section section--fx" id="experience" aria-labelledby="experience-title">
+      {/* Grid only: the milestone rail and the detail panel own this section's
+          centre, so a snake here would sit behind them or fight the controls. */}
+      <SectionBackdrop motionEnabled={!reduceMotion} />
       <div className="shell">
         <SectionHeading
           index="03"

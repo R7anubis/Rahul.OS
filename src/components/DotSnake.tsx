@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * A small snake that lives inside the existing dot grid.
@@ -13,6 +13,11 @@ import { useEffect, useRef } from 'react'
  * it. That gives continuous curvature for free and makes sudden jumps
  * impossible by construction. Horizontal travel wraps modulo the canvas width,
  * so leaving one edge is the same motion as entering the other.
+ *
+ * Only one instance is ever awake: a snake runs while its section overlaps the
+ * reading band near the top of the viewport, and takes the module-level
+ * presence slot so a section boundary hands over cleanly instead of showing two
+ * snakes at once. Between sections it fades out and stops entirely.
  *
  * Cost control:
  *  - nothing is mounted unless motion is on, the pointer is a fine hover
@@ -52,6 +57,17 @@ interface Dot {
   a: number
 }
 
+/**
+ * Only one snake may be visible on the page at a time.
+ *
+ * Each mounted snake tries to take this single slot when its section reaches
+ * the reading band. A snake holds the slot while it fades out and releases it
+ * when it has gone, so a handoff between sections is sequential — the outgoing
+ * snake finishes leaving before the incoming one appears — rather than two
+ * snakes crossed over each other.
+ */
+let presenceHolder: object | null = null
+
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
 /** Shortest signed angular difference, in (-PI, PI]. */
@@ -64,13 +80,36 @@ const angleDiff = (target: number, current: number) => {
 
 export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  /**
+   * Whether the effect may run at all. Resolved before render so a device that
+   * is not eligible never gets the canvas element — an inert empty canvas in
+   * the DOM would still be a small lie about what is switched on.
+   */
+  const [canRun, setCanRun] = useState(false)
 
   useEffect(() => {
-    if (!motionEnabled) return
-    if (typeof window.matchMedia !== 'function') return
+    if (!motionEnabled) {
+      setCanRun(false)
+      return
+    }
+    if (typeof window.matchMedia !== 'function') {
+      setCanRun(false)
+      return
+    }
     // Touch-first devices skip the effect entirely, per the design brief.
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      setCanRun(false)
+      return
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCanRun(false)
+      return
+    }
+    setCanRun(true)
+  }, [motionEnabled])
+
+  useEffect(() => {
+    if (!canRun) return
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -398,10 +437,10 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
         ctx.clearRect(cell.x - 5, cell.y - 5, 10, 10)
       }
       painted = []
-      if (!enabled || state.fade < 0.02) return
+      const fade = state.fade * presence
+      if (!enabled || fade < 0.02) return
 
       const approaching = state.phase === 'approach' || state.phase === 'tap'
-      const fade = state.fade
 
       // Body dots, back to front so the head sits on top.
       for (let i = BODY - 1; i >= 1; i -= 1) {
@@ -449,9 +488,32 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
     }
 
     /* ---- loop --------------------------------------------------------- */
+    const token = {}
     let running = false
     let visible = true
-    let onScreen = true
+    let primary = false
+    /** how far this snake is faded in; 0 = gone, 1 = fully present */
+    let presence = 0
+
+    /**
+     * Claim (or keep) the single presence slot for this frame, then ease toward
+     * the resulting target. A snake that wants the slot while another holds it
+     * simply waits, faded out, until the holder finishes leaving.
+     */
+    const updatePresence = (dt: number) => {
+      const wants = primary && visible && enabled
+      if (wants && presenceHolder === null) presenceHolder = token
+      const owns = presenceHolder === token
+      const target = wants && owns ? 1 : 0
+      presence += (target - presence) * Math.min(1, 5 * dt)
+      if (!wants && owns && presence <= 0.01) {
+        presence = 0
+        presenceHolder = null
+      }
+    }
+
+    /** Keep animating while primary, or while still visibly fading out. */
+    const shouldRun = () => visible && (primary || presence > 0.01)
 
     const frame = (now: number) => {
       if (!running) return
@@ -459,12 +521,14 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
       if (!state.last) state.last = now
       const dt = Math.min(0.05, (now - state.last) / 1000)
       state.last = now
+      updatePresence(dt)
       if (enabled) step(dt)
       render()
+      if (!shouldRun()) stop()
     }
 
     const start = () => {
-      if (running || !visible || !onScreen) return
+      if (running || !shouldRun()) return
       running = true
       state.last = 0
       state.frame = window.requestAnimationFrame(frame)
@@ -474,6 +538,9 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
       running = false
       if (state.frame) window.cancelAnimationFrame(state.frame)
       state.frame = 0
+      // Never leave the slot claimed by a snake that is no longer running, or
+      // no other section could ever take it.
+      if (presenceHolder === token) presenceHolder = null
     }
 
     /* ---- listeners ---------------------------------------------------- */
@@ -506,15 +573,22 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
     // Theme changes swap the palette under a running canvas.
     const themeObserver = new MutationObserver(readPalette)
 
+    /**
+     * Primacy is measured against a band near the top of the viewport rather
+     * than "any part visible". The band is 30%–45% of the viewport height, which
+     * is where the eye sits while reading, and because the sections are stacked
+     * and non-overlapping at most one snake holds it at a time — so two snakes
+     * cannot both be awake. Crossing a boundary lets the outgoing snake finish
+     * fading before the incoming one takes the slot.
+     */
     const io =
       typeof IntersectionObserver === 'function'
         ? new IntersectionObserver(
             (entries) => {
-              onScreen = entries.some((entry) => entry.isIntersecting)
-              if (onScreen && visible) start()
-              else stop()
+              primary = entries.some((entry) => entry.isIntersecting)
+              if (primary && visible) start()
             },
-            { threshold: 0 },
+            { rootMargin: '-30% 0px -55% 0px', threshold: 0 },
           )
         : null
 
@@ -530,6 +604,9 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
     window.addEventListener('pointermove', onPointerMove, { passive: true })
     window.addEventListener('pointerleave', onPointerLeave)
 
+    // Without an observer there is no band to measure, so the snake behaves as
+    // it did before: present whenever the section is mounted and enabled.
+    if (!io) primary = true
     if (visible && enabled) start()
 
     return () => {
@@ -542,7 +619,9 @@ export function DotSnake({ motionEnabled, className = '' }: DotSnakeProps) {
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerleave', onPointerLeave)
     }
-  }, [motionEnabled])
+  }, [canRun])
+
+  if (!canRun) return null
 
   return <canvas className={`snake ${className}`.trim()} ref={canvasRef} aria-hidden="true" />
 }

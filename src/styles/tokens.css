@@ -156,6 +156,17 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Dot backgrounds
+   One pitch shared by the static `.dot-field` texture and the reactive
+   `.pointer-grid`. Identical pitch *and* identical `background-position` are
+   what make the reactive layer light up the existing dots instead of printing a
+   second, offset grid on top of them.
+   --------------------------------------------------------------------------- */
+:root {
+  --dot-pitch: 12px;
+}
+
+/* ---------------------------------------------------------------------------
    Pointer layer + reveal tokens
    The custom cursor only ever renders when html[data-cursor="custom"] is set
    by the capability-gated hook, so these values are inert until then.

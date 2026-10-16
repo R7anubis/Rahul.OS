@@ -13,9 +13,10 @@ interaction that earns its place on the page.
   and a keyboard-accessible **interest map**
 - **Dark and light themes**, persisted, following the OS on a first visit
 - **A precision pointer language** — a bracket reticle cursor over a pointer-reactive
-  dot grid — that is capability-gated and never replaces the native cursor unsafely
-- **A dot-matrix snake** that swims through the hero's own dot grid and occasionally
-  notices the cursor
+  dot grid that covers every spacious section — capability-gated, and never replaces
+  the native cursor unsafely
+- **A dot-matrix snake** that swims through the dot grid in three sections and
+  occasionally notices the cursor
 - **Reduced-motion support**, plus an explicit motion toggle that changes real behaviour
 - No backend, no analytics, no cookies, no trackers
 
@@ -40,7 +41,7 @@ npm run dev          # → http://localhost:5173
 | `npm run build` | Type-check (`tsc -b`) then build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run typecheck` | TypeScript only, no emit |
-| `npm run smoke` | Renders every route and asserts links, a11y, metadata and content rules (227 checks) |
+| `npm run smoke` | Renders every route and asserts links, a11y, metadata and content rules (260 checks) |
 | `npm run assets:images` | Regenerate every image from `assets-src/portrait-source.jpeg` |
 
 Node 20+ is required (developed on Node 22).
@@ -79,7 +80,8 @@ a third-party CDN, so the site renders identically offline.
 src/
   components/            interface components
     PointerLayer.tsx     capability-gated reticle cursor, crosshair
-    DotSnake.tsx         canvas snake that lives in the hero dot grid
+    DotSnake.tsx         canvas snake that lives in the dot grid
+    SectionBackdrop.tsx  per-section reactive grid (+ snake where it fits)
     PointerGrid.tsx      low-contrast pointer-reactive dot field
     DiagramExplorer.tsx  interactive architecture diagram (stages + readout)
     figures/             original SVG project illustrations
@@ -173,11 +175,46 @@ Keyboard users are unaffected: focus rings, tab order and the skip link are
 untouched, and every interaction the pointer layer decorates also exists as a real
 button (the diagram stages, the interest map, the timeline milestones).
 
+### Where the reactive grid lives
+
+One dot pattern, defined once. `.dot-field` (static) and `.pointer-grid`
+(reactive) both read `--dot-pitch` and both use `background-position: center`, so
+in a section that has a static texture the reactive layer brightens **those**
+dots rather than printing a second, offset grid over them. That was previously
+broken in two ways: the hero's reactive layer ran at 14px over a 12px static
+grid, and the Contact layer at 13px, with no shared source of truth.
+
+Coverage is decided by how much open background a section actually has, not by
+applying it everywhere:
+
+| Section | Grid | Snake | Why |
+| --- | --- | --- | --- |
+| Hero | yes | yes | The dot-field it sits on; the primary snake |
+| About | yes | yes | Text column and a sticky aside, with open background around them |
+| Projects | yes | no | Card grid — dots only show in the gutters and around the head |
+| Experience | yes | no | The rail and detail panel own the centre; a snake would fight the controls |
+| Education | yes | no | Two cards and a list — genuinely sparse |
+| Skills | **no** | no | Six opaque cards fill the width, leaving almost no open background |
+| Interests | **no** | no | Already has its own 14px dotted canvas and an SVG diagram |
+| Contact | yes | yes | Kept, now identical to everywhere else |
+| Toolchain | **no** | no | A thin, full-width band of tool names |
+
+Two properties make this safe to apply at that breadth. Card and panel
+backgrounds (`--bg-panel`) are opaque hex values in both themes, so dots can
+never ghost through a card, diagram or table — the effect is only ever visible
+in real open space. And every backdrop is absolutely positioned behind a lifted
+content column (`.section--fx > .shell`), so it cannot shift layout or cover
+anything.
+
 ### The dot snake
 
-`src/components/DotSnake.tsx` draws a snake onto a canvas layered inside
-`.hero__bg` — above the CSS dot field, below the hero content, and inside a
-stacking context that cannot cover text. It never receives a pointer event.
+`src/components/DotSnake.tsx` draws a snake onto a canvas layered inside a
+section's background — above the CSS dot field, below the content column, and
+inside a stacking context that cannot cover text. It never receives a pointer
+event. It is mounted in three sections: the hero (the primary version), About
+and Contact. Sections where cards, diagrams or controls occupy the centre were
+left alone, because there the snake would either hide behind them or compete
+with them.
 
 - **It rides the existing grid.** Body dots snap to the same 12px pitch as
   `.dot-field` (`PITCH` in the component is checked against the stylesheet by the
@@ -194,6 +231,20 @@ stacking context that cannot cover text. It never receives a pointer event.
   back in), `surface`, and the encounter states `approach`, `tap`, `recoil`. Pauses
   and dives are scheduled 7–16 s apart and vary in duration; a dive is the "gone
   into the grid" case.
+- **One snake at a time.** Primacy is measured against a reading band 30%–45% of
+  the way down the viewport rather than "any part visible", so at most one
+  section holds it at any moment. A module-level presence slot then arbitrates:
+  a snake claims it, holds it while it fades out, and releases it once it has
+  gone. A handover at a section boundary is therefore sequential — the outgoing
+  snake leaves before the incoming one appears — instead of two snakes crossing
+  over. Losing primacy starts a fade and only stops the loop once the snake is
+  invisible; the simulation state is never reset, so a snake resumes its own
+  path rather than restarting. Between those sections there is no snake at all,
+  which reads as it having gone back into the grid.
+- **Nothing is mounted where it cannot run.** Eligibility is resolved before
+  render, so a touch-only device or a reduced-motion request does not get the
+  canvas element at all — previously the canvas was rendered and merely left
+  inert, which made the "disabled" claim partly untrue.
 - **Cursor encounters are rare.** They need the pointer inside the hero, within
   300 px of the head, and clear of a cooldown that runs 14–30 s after each one. The
   snake approaches at a limited turn rate, taps within 24 px, and recoils. A single
@@ -233,13 +284,18 @@ screen readers still get the documented order.
 
 ## Performance
 
-Production build: **58.1 kB CSS (10.7 kB gzipped)** and **353 kB JS (108 kB
+Production build: **58.1 kB CSS (10.7 kB gzipped)** and **354 kB JS (108 kB
 gzipped)**, of which React is the bulk. There is no animation library. Motion is
 CSS transitions plus three small `requestAnimationFrame` loops, each of which runs
 only while something is actually happening: the pointer layer under an active
-pointer, the scroll-progress hairline under scroll, and the snake while the hero is
-on screen and the tab is visible. Fonts are two preloaded variable files (~140 kB
-for both families).
+pointer, the scroll-progress hairline under scroll, and the snake — only in the one
+section that currently holds the reading band, and only while the tab is visible.
+
+Adding the effect to five more sections cost no extra loops and no extra
+listeners per frame: each reactive grid listens on its own `<section>`, so a
+`pointermove` outside that section never reaches it, and the snakes pass a single
+presence slot between them. Fonts are two preloaded variable files (~140 kB for
+both families).
 
 ---
 
@@ -290,7 +346,7 @@ npm run smoke
 ```
 
 This does not test mocks. It boots the **real Vite pipeline**, renders the real
-`App` component, and checks 227 assertions:
+`App` component, and checks 260 assertions:
 
 1. **Static render, per route** — heading structure, every in-page anchor
    resolving to a real element (and not to the 404 view), no dead `href="#"`,
@@ -334,6 +390,17 @@ This does not test mocks. It boots the **real Vite pipeline**, renders the real
     jsdom has neither a canvas nor a layout engine.
 13. **Interest map reflow** — the pack is no longer hidden on small screens, the
     rail rendering exists, and both layouts draw all six connections.
+14. **Reactive grid coverage and alignment** — the pitch token is 12px and both
+    the static and reactive layers consume it; the reactive layer shares the
+    static grid's phase; no per-section pitch overrides have come back; the five
+    intended sections carry the effect and Skills/Interests do not; every grid
+    resolves a real `<section>` host (the hero's old host was inert, which
+    silently disabled it); no grid is nested in a card or diagram canvas; and
+    `--bg-panel` is an opaque hex in both themes so dots cannot ghost through.
+15. **Snake placement and handover** — one snake per spacious section and none in
+    the dense ones; the single presence slot; the release-on-finish rule; the
+    reading band; and that eligibility is resolved before render, so touch-only
+    and reduced-motion mounts contain no canvas element at all.
 
 While building this, the suite caught two real bugs (the `#top` wordmark and the
 `#main` skip link both routing to the not-found view), which are now
@@ -383,8 +450,20 @@ real browser before publishing:
    confirm: speed and pause lengths vary, horizontal wrap reads as continuous (no
    visible teleport), the dive-and-resurface is not jarring, and cursor encounters
    stay infrequent. Then check CPU/temperature on a low-powered laptop — the loop
-   pauses when the tab is hidden and when the hero scrolls away, but that is
-   asserted in code, not measured.
+   pauses when the tab is hidden and when the section leaves the reading band, but
+   that is asserted in code, not measured.
+10. **Snake handover between sections** — scroll slowly from About into Projects
+   and back. The About snake should fade out, Projects should show none, and
+   Contact should fade its own in. Confirm you never see two snakes at once and
+   that a handover reads as a fade rather than a cut. This is the part most worth
+   your eyes: the sequencing is asserted in code, but whether it *feels* smooth
+   at 60fps is not something jsdom can tell us.
+11. **Grid alignment in the hero** — the reactive dots should brighten the existing
+   static dots, not appear between them. This is the fix that motivated the shared
+   pitch token, and it is only visible in a browser.
+12. **Grid over cards** — confirm no dots appear on top of a project card, cluster
+   card, timeline panel or the terminal. They should be visible only in open
+   background.
 
 Responsive targets designed for: **≥1600px** large desktop, **1280–1440px**
 laptop, **768–1023px** tablet, **≤767px** mobile (with 320px as the floor). The

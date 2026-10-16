@@ -1,9 +1,11 @@
 import { profile } from '../data/profile'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
-export function About() {
+export function About({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <section className="section" id="about" aria-labelledby="about-title">
+    <section className="section section--fx" id="about" aria-labelledby="about-title">
+      <SectionBackdrop motionEnabled={motionEnabled} snake />
       <div className="shell">
         <SectionHeading
           index="01"

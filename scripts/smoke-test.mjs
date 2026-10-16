@@ -1068,13 +1068,22 @@ section('Dot snake gating and layering')
     dispatchEvent: () => false,
   })
 
+  // The snakes only exist on the home page, so each mount has to start from the
+  // home route. Earlier sections leave the document on a project route, which
+  // silently made every mount assertion here vacuous — the route is therefore
+  // reset per mount and asserted below.
   const mountFresh = async () => {
+    window.history.replaceState(null, '', '/')
     const host = document.createElement('div')
     document.body.appendChild(host)
     const r = createRoot(host)
     await act(async () => {
       r.render(React.createElement(App))
     })
+    ok(
+      host.querySelector('.hero') !== null,
+      'the home page is the rendered route for this mount',
+    )
     return { host, r }
   }
 
@@ -1083,8 +1092,8 @@ section('Dot snake gating and layering')
   window.matchMedia = stub({ fine: false, reduced: false, hover: false })
   const touch = await mountFresh()
   ok(
-    touch.host.querySelector('canvas.snake') === null,
-    'touch-only device: the snake is not mounted at all',
+    touch.host.querySelectorAll('canvas.snake').length === 0,
+    'touch-only device: no snake is mounted anywhere',
   )
   await act(async () => {
     touch.r.unmount()
@@ -1094,13 +1103,32 @@ section('Dot snake gating and layering')
   window.matchMedia = stub({ fine: true, reduced: true, hover: true })
   const reducedMount = await mountFresh()
   ok(
-    reducedMount.host.querySelector('canvas.snake') === null,
-    'reduced motion: the snake is not mounted',
+    reducedMount.host.querySelectorAll('canvas.snake').length === 0,
+    'reduced motion: no snake is mounted anywhere',
   )
   await act(async () => {
     reducedMount.r.unmount()
   })
   reducedMount.host.remove()
+
+  // Fine pointer with motion allowed: one snake per spacious section.
+  window.matchMedia = stub({ fine: true, reduced: false, hover: true })
+  const fineMount = await mountFresh()
+  const snakes = [...fineMount.host.querySelectorAll('canvas.snake')]
+  ok(snakes.length === 3, `the snake is mounted in three sections (${snakes.length})`, 'expected 3')
+  const snakeSections = snakes.map((c) => c.closest('section')?.id)
+  ok(
+    snakeSections.join(',') === 'top,about,contact',
+    `snake sections are the spacious ones (${snakeSections.join(', ')})`,
+  )
+  ok(
+    fineMount.host.querySelectorAll('#experience canvas.snake, #skills canvas.snake, #interests canvas.snake').length === 0,
+    'no snake in the sections that were judged too dense',
+  )
+  await act(async () => {
+    fineMount.r.unmount()
+  })
+  fineMount.host.remove()
 
   window.matchMedia = originalMatchMedia
 
@@ -1141,17 +1169,157 @@ section('Dot snake gating and layering')
   )
   ok(/stop\(\)\n      ro\?\.disconnect/.test(snakeSource), 'the animation frame loop is stopped on cleanup')
 
+  // Only one snake may be visible at a time, and handover must be sequential.
+  ok(
+    /let presenceHolder: object \| null = null/.test(snakeSource),
+    'a single module-level presence slot arbitrates between snake instances',
+  )
+  ok(
+    /if \(!wants && owns && presence <= 0\.01\)/.test(snakeSource),
+    'a snake releases the slot only once it has finished fading out',
+  )
+  ok(
+    /if \(!wants && owns && presence <= 0\.01\)/.test(snakeSource) &&
+      /state\.fade \* presence/.test(snakeSource),
+    'presence scales the drawn alpha, so handover is a fade rather than a cut',
+  )
+  ok(
+    /if \(presenceHolder === token\) presenceHolder = null/.test(snakeSource),
+    'stopping always releases the slot, so no section can be starved of it',
+  )
+  ok(
+    /rootMargin: '-30% 0px -55% 0px'/.test(snakeSource),
+    'primacy is measured against a reading band, not mere visibility',
+  )
+  ok(
+    /if \(primary && visible\) start\(\)/.test(snakeSource) &&
+      !/else stop\(\)\s*\n\s*\},\s*\n\s*\{ rootMargin/.test(snakeSource),
+    'losing primacy starts a fade instead of cutting the animation',
+  )
+
   // The snake must ride the existing grid pitch rather than invent its own.
   const globalCss = readFileSync(path.join(root, 'src/styles/global.css'), 'utf8')
   const dotField = globalCss.slice(
     globalCss.indexOf('.dot-field {'),
-    globalCss.indexOf('.dot-field {') + 200,
+    globalCss.indexOf('.dot-field {') + 220,
   )
-  ok(/background-size:\s*12px 12px/.test(dotField), 'the dot field pitch is 12px')
+  const tokensCss = readFileSync(path.join(root, 'src/styles/tokens.css'), 'utf8')
+  ok(/--dot-pitch:\s*12px/.test(tokensCss), 'the shared dot pitch token is 12px')
+  ok(
+    /background-size:\s*var\(--dot-pitch\) var\(--dot-pitch\)/.test(dotField),
+    'the static dot field uses the shared pitch',
+  )
   ok(
     /const PITCH = 12\b/.test(readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')),
     'the snake uses the same 12px pitch as the dot field',
   )
+}
+
+section('Reactive dot grid: coverage, alignment and safety')
+
+{
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+
+  // --- alignment: the reactive layer must coincide with the static texture ---
+  const grid = css.slice(css.indexOf('.pointer-grid {'), css.indexOf('.pointer-grid {') + 700)
+  ok(
+    /background-size:\s*var\(--dot-pitch\) var\(--dot-pitch\)/.test(grid),
+    'the reactive grid uses the same shared pitch as the static dot field',
+  )
+  ok(
+    /background-position:\s*center/.test(grid),
+    'the reactive grid shares the static grid phase, so dots brighten in place',
+  )
+  ok(
+    !/\.pointer-grid--/.test(css),
+    'no per-section modifier sets a divergent pitch (the old 13px/14px split is gone)',
+  )
+  ok(
+    /pointer-events:\s*none/.test(grid),
+    'the grid never takes a pointer event',
+  )
+  ok(
+    /position:\s*absolute/.test(grid),
+    'the grid is absolutely positioned, so it cannot shift layout',
+  )
+
+  // --- the backdrop layer sits behind a lifted content column ---
+  const fx = css.slice(css.indexOf('.section__fx {'), css.indexOf('.section__fx {') + 260)
+  ok(/inset:\s*0/.test(fx), 'the section backdrop fills the section box')
+  ok(/z-index:\s*0/.test(fx), 'the backdrop is at z-index 0')
+  ok(/pointer-events:\s*none/.test(fx), 'the backdrop is inert to pointer events')
+  const shell = css.slice(css.indexOf('.section--fx > .shell'), css.indexOf('.section--fx > .shell') + 120)
+  ok(/position:\s*relative/.test(shell), 'the content column is positioned above the backdrop')
+  ok(/z-index:\s*1/.test(shell), 'the content column is lifted to z-index 1')
+
+  // --- the wrapper the hero uses is inert, which is why the host must be the section ---
+  const heroBg = css.slice(css.indexOf('.hero__bg {'), css.indexOf('.hero__bg {') + 160)
+  ok(
+    /pointer-events:\s*none/.test(heroBg),
+    'the hero background wrapper is inert (it can never receive pointer events itself)',
+  )
+
+  // --- placement, against the rendered document ---
+  window.history.replaceState(null, '', '/')
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const r = createRoot(host)
+  await act(async () => {
+    r.render(React.createElement(App))
+  })
+
+  const grids = [...host.querySelectorAll('.pointer-grid')]
+  ok(grids.length > 0, `reactive grids are rendered (${grids.length})`)
+
+  // Every grid must resolve to a real <section> host, or it would be inert.
+  const hosts = grids.map((g) => g.closest('section'))
+  ok(
+    hosts.every((h) => h !== null),
+    'every reactive grid resolves a <section> host, so none of them is inert',
+  )
+  const heroGrid = grids.find((g) => g.closest('.hero') !== null)
+  ok(heroGrid !== undefined, 'the hero still carries a reactive grid')
+  ok(
+    heroGrid !== undefined && heroGrid.closest('section') !== heroGrid.parentElement,
+    "the hero grid's host is the section, not the inert .hero__bg wrapper",
+  )
+
+  // Which sections got it, and which deliberately did not.
+  const withFx = [...host.querySelectorAll('main .section.section--fx')].map((s) => s.id)
+  const expected = ['about', 'projects', 'experience', 'education', 'contact']
+  ok(
+    expected.every((id) => withFx.includes(id)),
+    `the spacious sections carry the effect (${withFx.join(', ')})`,
+    `missing: ${expected.filter((id) => !withFx.includes(id)).join(', ')}`,
+  )
+  const interests = host.querySelector('#interests')
+  ok(
+    interests !== null && interests.querySelector('.section__fx') === null,
+    'the interest map is left alone — it has its own canvas and dot texture',
+  )
+  const skills = host.querySelector('#skills')
+  ok(
+    skills !== null && skills.querySelector('.section__fx') === null,
+    'the skills grid is left alone — six opaque cards leave too little open background',
+  )
+  ok(
+    host.querySelectorAll('.imap__canvas .pointer-grid, .project-card .pointer-grid').length === 0,
+    'no grid is nested inside a diagram canvas or a card',
+  )
+
+  // --- dots must not ghost through cards ---
+  const tokens = readFileSync(path.join(root, 'src/styles/tokens.css'), 'utf8')
+  const panelValues = [...tokens.matchAll(/--bg-panel:\s*([^;]+);/g)].map((m) => m[1].trim())
+  ok(
+    panelValues.length >= 2 && panelValues.every((v) => /^#[0-9a-f]{6}$/i.test(v)),
+    'card backgrounds are opaque in both themes, so dots cannot show through them',
+    panelValues.join(' | '),
+  )
+
+  await act(async () => {
+    r.unmount()
+  })
+  host.remove()
 }
 
 section('Precision reticle')

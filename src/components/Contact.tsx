@@ -9,8 +9,8 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { profile } from '../data/profile'
-import { PointerGrid } from './PointerGrid'
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard'
+import { SectionBackdrop } from './SectionBackdrop'
 import { SectionHeading } from './SectionHeading'
 
 const linkIcons = {
@@ -30,8 +30,8 @@ export function Contact({ motionEnabled }: { motionEnabled: boolean }) {
   const { state, copy, isCopied, isError } = useCopyToClipboard()
 
   return (
-    <section className="section contact" id="contact" aria-labelledby="contact-title">
-      <PointerGrid className="pointer-grid--contact" motionEnabled={motionEnabled} />
+    <section className="section section--fx contact" id="contact" aria-labelledby="contact-title">
+      <SectionBackdrop motionEnabled={motionEnabled} snake />
       <div className="shell">
         <SectionHeading
           index="07"
