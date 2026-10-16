@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Hash routes are fragments of a single document, so only the root URL is listed. -->
+<!--
+  Hash routes are fragments of a single document, so there is exactly one URL
+  to list. The origin must match SITE_URL in src/lib/site.ts and the canonical
+  tag in index.html — the smoke test checks that they agree.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/</loc>
+    <loc>https://rahul-os-ten.vercel.app/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>

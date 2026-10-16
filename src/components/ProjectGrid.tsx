@@ -37,16 +37,10 @@ export function ProjectGrid({ onOpenProject }: ProjectGridProps) {
           id="projects-title"
           title="Four entries, described at the stage they actually reached."
           note={
-            <>
-              <p>
-                Two of these come from study and side exploration, one is an academic
-                proposal, and one is a description of a job.
-              </p>
-              <p style={{ marginTop: '0.6rem' }}>
-                Every visual below is an <strong>original diagram drawn for this site</strong> —
-                there are no project screenshots, and nothing here is a proprietary interface.
-              </p>
-            </>
+            <p>
+              Two from study and personal work, one an academic proposal, and one a
+              description of a job.
+            </p>
           }
         />
 

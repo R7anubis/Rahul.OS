@@ -1,7 +1,8 @@
 /**
- * Skills and technical interests, grouped into clusters.
- * Deliberately no percentages or proficiency meters: the clusters describe
- * areas of experience, and the footnote in the UI says exactly that.
+ * Skills and technical interests, grouped by area.
+ *
+ * No percentages or proficiency meters: there is no evidence behind a score,
+ * so the clusters only name what has been worked with.
  */
 
 export interface SkillCluster {
@@ -19,7 +20,7 @@ export const skillClusters: SkillCluster[] = [
     name: 'Data & AI',
     code: 'SYS.01',
     description:
-      'Analysis and applied machine learning, plus a working interest in generative AI and how to use it well.',
+      'Analysis and applied machine learning, plus day-to-day use of generative AI tools.',
     tags: ['Python', 'Data analysis', 'AI/ML', 'Generative AI', 'Prompt engineering', 'AI-assisted development'],
   },
   {
@@ -27,7 +28,7 @@ export const skillClusters: SkillCluster[] = [
     name: 'Software development',
     code: 'SYS.02',
     description:
-      'Front end, back end and general application development across study and personal work.',
+      'Front end, back end and application development, mostly from study and personal projects.',
     tags: ['JavaScript', 'React', 'Vite', 'Java', 'Kotlin', 'C', 'C++', 'CMake', 'GraphQL', 'PostgreSQL'],
   },
   {
@@ -35,7 +36,7 @@ export const skillClusters: SkillCluster[] = [
     name: 'Mobile',
     code: 'SYS.03',
     description:
-      'Android application work, including on-device machine learning with Firebase ML Kit.',
+      'Android development, including on-device face and landmark detection with Firebase ML Kit.',
     tags: ['Android', 'Kotlin', 'Java', 'Firebase ML Kit', 'Face & landmark detection'],
   },
   {
@@ -43,7 +44,7 @@ export const skillClusters: SkillCluster[] = [
     name: 'Embedded & automotive',
     code: 'SYS.04',
     description:
-      'Embedded software and Linux application work from the automotive side of engineering.',
+      'Embedded C/C++ and Linux application work in the automotive domain.',
     tags: ['Embedded C', 'Embedded C++', 'Embedded Linux', 'Raspberry Pi', 'ADAS domain'],
   },
   {
@@ -59,10 +60,9 @@ export const skillClusters: SkillCluster[] = [
     name: 'Game technology',
     code: 'SYS.06',
     description:
-      'Professional technical QA in AAA development, plus an ongoing interest in how games are built.',
+      'Technical QA in AAA development, and an interest in how games are built.',
     tags: ['Technical QA', 'Functional testing', 'Regression testing', 'Defect reporting', 'Stability & performance', 'Unity', 'C#'],
   },
 ]
 
-export const skillsNote =
-  'Grouped by area of experience rather than scored. Some of these are professional tools, others are study, coursework or side exploration — the labels and the rest of this site are where the difference is spelled out.'
+export const skillsNote = 'Tools and topics from work, study and personal projects.'

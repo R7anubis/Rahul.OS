@@ -94,7 +94,7 @@ export function CommandPalette({
       {
         id: 'action-theme',
         label: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
-        hint: 'Toggle the interface palette',
+        hint: 'Switch between light and dark',
         kind: 'Action',
         keywords: 'theme dark light appearance colour color toggle',
         icon: theme === 'dark' ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />,
@@ -103,7 +103,7 @@ export function CommandPalette({
       {
         id: 'action-motion',
         label: motion === 'off' ? 'Turn motion on' : 'Reduce motion',
-        hint: 'Changes animation behaviour everywhere on the site',
+        hint: 'Turns animation off across the site',
         kind: 'Action',
         keywords: 'motion animation reduce accessibility toggle',
         icon: <MousePointerClick size={14} aria-hidden="true" />,
@@ -112,7 +112,7 @@ export function CommandPalette({
       {
         id: 'action-top',
         label: 'Back to top of page',
-        hint: 'Jump to the identity screen',
+        hint: 'Jump to the top',
         kind: 'Action',
         keywords: 'top home scroll start',
         icon: <ArrowUpRight size={14} aria-hidden="true" />,

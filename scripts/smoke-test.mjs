@@ -8,9 +8,9 @@
  *
  * Run with: npm run smoke
  */
-import { JSDOM } from 'jsdom'
+import { JSDOM, VirtualConsole } from 'jsdom'
 import { createServer } from 'vite'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -34,12 +34,32 @@ const section = (title) => console.log(`\n\u001b[1m${title}\u001b[0m`)
 /* ------------------------------------------------------------------ *
  * Browser environment (jsdom) — created before React is imported.
  * ------------------------------------------------------------------ */
+// jsdom has no canvas backend, so `getContext('2d')` reports "not implemented"
+// and returns null. The snake is written to bail out on a null context, and the
+// assertion below covers that; the notice itself is jsdom's, not the app's, so
+// it is filtered rather than left to look like a failure.
+const virtualConsole = new VirtualConsole()
+virtualConsole.on('jsdomError', (error) => {
+  if (/Not implemented/i.test(error.message)) return
+  console.error(error)
+})
+
 const dom = new JSDOM('<!doctype html><html data-theme="dark" data-motion="on"><head></head><body><div id="root"></div></body></html>', {
   url: 'https://rahul-os.test/',
   pretendToBeVisual: true,
+  virtualConsole,
 })
 
 const { window } = dom
+
+// Give jsdom the same <head> the real build ships, so the metadata assertions
+// below exercise the actual tags rather than a fixture. Scripts are dropped —
+// jsdom does not execute them here and they are not what is under test.
+{
+  const html = readFileSync(path.join(root, 'index.html'), 'utf8')
+  const head = html.slice(html.indexOf('<head>') + 6, html.indexOf('</head>'))
+  window.document.head.innerHTML = head.replace(/<script[\s\S]*?<\/script>/g, '')
+}
 
 // jsdom lacks these; the app uses them for motion, scroll spy and scrolling.
 window.matchMedia = (query) => ({
@@ -470,8 +490,15 @@ const key = async (target, keyName, init = {}) => {
     'the detail panel shows the selected employer',
   )
   ok(
-    (host.querySelector('.detail-panel')?.textContent ?? '').includes('Dates not listed'),
-    'unverified dates are stated rather than invented',
+    !/dates not listed|dates unverified|not recorded|not stated/i.test(
+      host.querySelector('.detail-panel')?.textContent ?? '',
+    ),
+    'an entry with no confirmed dates renders no date and no placeholder for one',
+  )
+  ok(
+    host.querySelector('.detail-panel__meta') !== null &&
+      !/\bDates\b/.test(host.querySelector('.detail-panel__meta')?.textContent ?? ''),
+    'the Dates row is omitted entirely when there are no dates to show',
   )
 
   await act(async () => {
@@ -612,8 +639,12 @@ const { experience } = await (async () => {
 })()
 
 ok(
-  experience.every((entry) => entry.datesVerified || /not listed/i.test(entry.dates)),
-  'employment without verified dates says so',
+  experience.every((entry) => entry.datesVerified || entry.dates === ''),
+  'entries without confirmed dates carry no date at all, rather than a placeholder',
+)
+ok(
+  !/résumé|resume/i.test(corpus.replace(/\/\*[\s\S]*?\*\//g, '')),
+  'public copy never refers to a résumé or other source document',
 )
 ok(
   experience.some((entry) => entry.org === 'Rockstar Games India' && entry.dates === 'Sep 2025 – Jun 2026'),
@@ -688,6 +719,498 @@ section('Experience timeline: company / role separation')
       `${label}: no manual whitespace was injected into the text`,
     )
   }
+}
+
+section('Copy: no process notes or repeated disclaimers')
+
+{
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const sourceOf = (file) => readFileSync(path.join(root, file), 'utf8')
+
+  // Strings that were removed because they explained how the site was
+  // assembled, or repeated a caveat that is already made once.
+  const removedPhrases = [
+    'Unlisted information has been omitted',
+    'Dates not listed',
+    'not recorded in the résumé supplied',
+    'Resume-based',
+    'no trackers',
+    'not a claim of equal depth',
+    'rather than scored',
+    'side exploration',
+    'Revision 0.1',
+    'SYSTEM ONLINE',
+    'rahul@rahul.os',
+    'not a screenshot',
+    'not screenshots',
+    'self-mythologising',
+    'at the intersection of',
+    'turning complex technical ideas into useful things',
+    'the thread that runs through',
+    'Building the thing, not just describing it',
+    'listed on the résumé',
+    'supplied résumé',
+    'Toolchain · as listed',
+  ]
+
+  const publicCopy = [
+    ...sourceFiles,
+    'src/components/About.tsx',
+    'src/components/Contact.tsx',
+    'src/components/DiagramExplorer.tsx',
+    'src/components/Education.tsx',
+    'src/components/ExperienceTimeline.tsx',
+    'src/components/Footer.tsx',
+    'src/components/Header.tsx',
+    'src/components/Hero.tsx',
+    'src/components/InterestMap.tsx',
+    'src/components/NotFound.tsx',
+    'src/components/ProjectDetail.tsx',
+    'src/components/ProjectGrid.tsx',
+    'src/components/Skills.tsx',
+    'src/App.tsx',
+    'index.html',
+  ]
+
+  const haystack = publicCopy
+    .map((file) => sourceOf(file))
+    // Comments are not public copy.
+    .map((text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''))
+    .join('\n')
+
+  const leaked = removedPhrases.filter((phrase) => haystack.includes(phrase))
+  ok(
+    leaked.length === 0,
+    'removed disclaimers, process notes and AI-style phrases have not come back',
+    leaked.join(' | '),
+  )
+
+  // The illustration note must survive exactly once per project page.
+  ok(
+    projects.every((project) => /original illustration/i.test(project.figureCaption)),
+    'every project figure caption states that the figure is an original illustration',
+  )
+  ok(
+    !/original illustration/i.test(css),
+    'the illustration note is not duplicated into the stylesheet',
+  )
+}
+
+section('Wordmark: RAHUL.RAJ renders as one word')
+
+{
+  window.history.replaceState(null, '', '/')
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const r = createRoot(host)
+  await act(async () => {
+    r.render(React.createElement(App))
+  })
+
+  // The reported bug was a space before the period: the footer mark is an
+  // inline-flex container, so a bare "RAHUL" text node became its own flex item
+  // and the container's gap landed between it and ".RAJ". This asserts the
+  // rendered text, which is what a reader actually sees.
+  const cases = [
+    ['.brand__text', 'header'],
+    ['.hero__wordmark', 'hero'],
+    ['.footer__mark', 'footer'],
+  ]
+
+  for (const [selector, where] of cases) {
+    const el = host.querySelector(selector)
+    if (!el) {
+      ok(false, `${where} wordmark is present`)
+      continue
+    }
+    // Strip the visually-hidden accessible expansion and any child text that
+    // is not the wordmark itself.
+    const clone = el.cloneNode(true)
+    clone.querySelectorAll('.vh').forEach((n) => n.remove())
+    const text = (clone.textContent || '').replace(/\s+/g, '')
+    ok(text.includes('RAHUL.RAJ'), `${where} wordmark renders as RAHUL.RAJ`, JSON.stringify(text))
+  }
+
+  // The flex gap must still apply between the mark glyph and the word.
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const markRule = css.slice(css.indexOf('.footer__mark {'), css.indexOf('.footer__mark {') + 320)
+  ok(/gap:\s*0\.55rem/.test(markRule), 'the footer mark keeps its intended spacing around the glyph')
+  ok(
+    /--wm-track:\s*0\.02em/.test(markRule),
+    'the footer wordmark carries its own tracking so the dot can sit flush',
+  )
+  ok(
+    /\.wordmark__dot \{[^}]*margin-left:\s*calc\(-1 \* var\(--wm-track/.test(css),
+    'the period reclaims exactly the tracking that letter-spacing inserted before it',
+  )
+
+  // No stray space in the source either — the value is a single token.
+  const profile = readFileSync(path.join(root, 'src/data/profile.ts'), 'utf8')
+  ok(/wordmark:\s*'RAHUL\.RAJ'/.test(profile), 'the wordmark value is RAHUL.RAJ with no space')
+
+  await act(async () => {
+    r.unmount()
+  })
+  host.remove()
+}
+
+section('SEO and metadata consistency')
+
+{
+  const html = readFileSync(path.join(root, 'index.html'), 'utf8')
+  const robots = readFileSync(path.join(root, 'public/robots.txt'), 'utf8')
+  const sitemap = readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8')
+  const site = readFileSync(path.join(root, 'src/lib/site.ts'), 'utf8')
+  const meta = await (async () => {
+    const server3 = await createServer({ root, logLevel: 'error', server: { middlewareMode: true }, appType: 'custom' })
+    const mod = await server3.ssrLoadModule('/src/lib/site.ts')
+    await server3.close()
+    return mod
+  })()
+
+  const ORIGIN = 'https://rahul-os-ten.vercel.app'
+  ok(meta.SITE_URL === ORIGIN, `canonical origin is the current deployment (${meta.SITE_URL})`)
+
+  // The unverified domain must not appear anywhere a crawler would read it.
+  const crawlable = html + robots + sitemap
+  ok(!/rahulraj\.dev/.test(crawlable), 'the unverified domain appears in no crawlable file')
+
+  ok(
+    html.includes(`<link rel="canonical" href="${ORIGIN}/" />`),
+    'index.html canonical is absolute and matches the origin',
+  )
+  ok(
+    html.includes(`content="${ORIGIN}/"`),
+    'og:url is absolute and matches the canonical origin',
+  )
+  ok(
+    html.includes(`content="${ORIGIN}/images/og-cover.jpg"`),
+    'og:image is absolute',
+  )
+  ok(
+    html.includes(`content="${ORIGIN}/images/og-cover.jpg"`),
+    'twitter:image is absolute',
+  )
+  ok(
+    !/content="\/images\/og-cover\.jpg"/.test(html),
+    'no crawler-facing image URL is left relative',
+  )
+
+  // Structured data must point at the same origin and an image that exists.
+  const ld = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
+  ok(ld !== null, 'structured data block is present')
+  if (ld) {
+    const data = JSON.parse(ld[1])
+    ok(data.url === `${ORIGIN}/`, 'structured-data url matches the canonical origin')
+    ok(data.image.startsWith(ORIGIN), 'structured-data image is on the canonical origin')
+    const imagePath = data.image.slice(ORIGIN.length)
+    ok(
+      existsSync(path.join(root, 'public', imagePath)),
+      `structured-data image exists in the build (${imagePath})`,
+    )
+  }
+
+  ok(sitemap.includes(`<loc>${ORIGIN}/</loc>`), 'sitemap lists an absolute canonical URL')
+  ok(!/<loc>\//.test(sitemap), 'sitemap has no relative loc entry')
+  ok(
+    robots.includes(`Sitemap: ${ORIGIN}/sitemap.xml`),
+    'robots.txt points at an absolute sitemap URL',
+  )
+
+  // Every image the metadata references must actually ship.
+  const ogOnDisk = path.join(root, 'public', 'images', 'og-cover.jpg')
+  ok(existsSync(ogOnDisk), 'the social preview image exists in public/')
+  ok(
+    /<meta property="og:image:width" content="1200" \/>/.test(html) &&
+      /<meta property="og:image:height" content="630" \/>/.test(html),
+    'og:image declares the 1200x630 dimensions',
+  )
+}
+
+section('Document metadata follows the route')
+
+{
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root2 = createRoot(host)
+
+  window.location.hash = '#/projects/sameface'
+  await act(async () => {
+    root2.render(React.createElement(App))
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 40))
+  })
+
+  ok(/SameFace/.test(document.title), `project route sets its own title (${document.title})`)
+  const desc = document.head.querySelector('meta[name="description"]')
+  ok(
+    desc !== null && /SameFace|similarity/i.test(desc.getAttribute('content') || ''),
+    'project route sets its own description',
+  )
+  ok(
+    document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') ===
+      'https://rahul-os-ten.vercel.app/',
+    'canonical stays on the document root for hash routes',
+  )
+
+  // The not-found route must not advertise itself as indexable content.
+  window.location.hash = '#/projects/does-not-exist'
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 40))
+  })
+  ok(/not found/i.test(document.title), `unknown route sets a not-found title (${document.title})`)
+
+  // Leave the document on the home route for the sections that follow.
+  window.history.replaceState(null, '', '/')
+  await act(async () => {
+    root2.unmount()
+  })
+  host.remove()
+}
+
+section('Diagram explorer: stable heading and selection model')
+
+{
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root3 = createRoot(host)
+  window.location.hash = '#/projects/sameface'
+  await act(async () => {
+    root3.render(React.createElement(App))
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 40))
+  })
+
+  const diagram = host.querySelector('.diagram')
+  ok(diagram !== null, 'the interactive diagram renders on the SameFace page')
+
+  if (diagram) {
+    const labelledBy = diagram.getAttribute('aria-labelledby')
+    const heading = diagram.querySelector('h2')
+    ok(heading !== null, 'the diagram has a heading element')
+    ok(
+      heading !== null && heading.id === labelledBy,
+      'aria-labelledby points at the diagram heading',
+    )
+    ok(
+      labelledBy !== null && labelledBy.startsWith('sameface'),
+      `the heading id is project-specific and stable (${labelledBy})`,
+    )
+    ok(
+      host.querySelectorAll(`#${labelledBy}`).length === 1,
+      'the heading id is unique in the document',
+    )
+
+    const stages = [...diagram.querySelectorAll('.diagram__stage')]
+    ok(stages.length >= 2, `stage controls are buttons (${stages.length})`)
+
+    const selectedId = () => stages.findIndex((b) => b.getAttribute('aria-pressed') === 'true')
+    const before = selectedId()
+    ok(before >= 0, 'exactly one stage starts selected')
+
+    // Hovering a different stage must not move the committed selection.
+    const other = stages.findIndex((_, i) => i !== before)
+    await act(async () => {
+      stages[other].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }))
+      stages[other].dispatchEvent(new window.MouseEvent('mouseenter', { bubbles: true }))
+    })
+    ok(
+      selectedId() === before,
+      'hovering another stage leaves the committed selection where it was',
+    )
+
+    // A click does move it.
+    await act(async () => {
+      stages[other].click()
+    })
+    ok(selectedId() === other, 'clicking a stage moves the selection')
+
+    // Arrow keys move it too, and keep focus with it.
+    await act(async () => {
+      stages[other].dispatchEvent(
+        new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+      )
+    })
+    ok(
+      selectedId() === (other + 1) % stages.length,
+      'arrow keys move the selection',
+    )
+  }
+
+  await act(async () => {
+    root3.unmount()
+  })
+  host.remove()
+}
+
+section('Dot snake gating and layering')
+
+{
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const originalMatchMedia = window.matchMedia
+
+  const stub = ({ fine, reduced, hover }) => (query) => ({
+    matches: query.includes('prefers-reduced-motion')
+      ? reduced
+      : query.includes('pointer: fine')
+        ? fine
+        : query.includes('hover: hover')
+          ? hover
+          : true,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })
+
+  const mountFresh = async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const r = createRoot(host)
+    await act(async () => {
+      r.render(React.createElement(App))
+    })
+    return { host, r }
+  }
+
+  // jsdom has no canvas backend, so this asserts the gating decision the
+  // component makes before it touches a rendering context.
+  window.matchMedia = stub({ fine: false, reduced: false, hover: false })
+  const touch = await mountFresh()
+  ok(
+    touch.host.querySelector('canvas.snake') === null,
+    'touch-only device: the snake is not mounted at all',
+  )
+  await act(async () => {
+    touch.r.unmount()
+  })
+  touch.host.remove()
+
+  window.matchMedia = stub({ fine: true, reduced: true, hover: true })
+  const reducedMount = await mountFresh()
+  ok(
+    reducedMount.host.querySelector('canvas.snake') === null,
+    'reduced motion: the snake is not mounted',
+  )
+  await act(async () => {
+    reducedMount.r.unmount()
+  })
+  reducedMount.host.remove()
+
+  window.matchMedia = originalMatchMedia
+
+  // Layering: behind content, never intercepting a pointer event.
+  const snakeRule = css.slice(css.indexOf('.snake {'))
+  ok(/pointer-events:\s*none/.test(snakeRule.slice(0, 400)), 'the snake never takes a pointer event')
+  ok(
+    /position:\s*absolute/.test(snakeRule.slice(0, 400)),
+    'the snake is positioned inside the hero background, not fixed over the page',
+  )
+  ok(
+    /z-index:\s*0/.test(css.slice(css.indexOf('.hero__bg {'), css.indexOf('.hero__inner'))),
+    'the hero background layer (which holds the snake) sits at z-index 0',
+  )
+  ok(
+    /z-index:\s*1/.test(css.slice(css.indexOf('.hero__inner {'), css.indexOf('.hero__inner {') + 200)),
+    'hero content sits above the snake',
+  )
+  ok(/prefers-reduced-motion/.test(readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')),
+    'the snake component itself checks reduced motion')
+
+  // jsdom provides no canvas context. The component must treat that as "no
+  // effect" rather than throwing, so a browser without 2D canvas still gets a
+  // working page.
+  const snakeSource = readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')
+  ok(
+    /if \(!ctx\) return/.test(snakeSource),
+    'a missing 2D context disables the effect instead of throwing',
+  )
+  ok(
+    /document\.addEventListener\('visibilitychange', onVisibility\)/.test(snakeSource) &&
+      /document\.removeEventListener\('visibilitychange', onVisibility\)/.test(snakeSource),
+    'the snake pauses on tab hide and removes that listener on cleanup',
+  )
+  ok(
+    /io\?\.disconnect\(\)/.test(snakeSource) && /themeObserver\.disconnect\(\)/.test(snakeSource),
+    'observers are disconnected on cleanup',
+  )
+  ok(/stop\(\)\n      ro\?\.disconnect/.test(snakeSource), 'the animation frame loop is stopped on cleanup')
+
+  // The snake must ride the existing grid pitch rather than invent its own.
+  const globalCss = readFileSync(path.join(root, 'src/styles/global.css'), 'utf8')
+  const dotField = globalCss.slice(
+    globalCss.indexOf('.dot-field {'),
+    globalCss.indexOf('.dot-field {') + 200,
+  )
+  ok(/background-size:\s*12px 12px/.test(dotField), 'the dot field pitch is 12px')
+  ok(
+    /const PITCH = 12\b/.test(readFileSync(path.join(root, 'src/components/DotSnake.tsx'), 'utf8')),
+    'the snake uses the same 12px pitch as the dot field',
+  )
+}
+
+section('Precision reticle')
+
+{
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const layer = readFileSync(path.join(root, 'src/components/PointerLayer.tsx'), 'utf8')
+
+  ok(layer.includes('pointer-reticle'), 'the reticle replaces the old cursor markup')
+  ok(!layer.includes('pointer-ring'), 'no circular follower remains in the component')
+  ok(!css.includes('.pointer-ring'), 'no circular follower remains in the stylesheet')
+  ok(!css.includes('pointer-ripple'), 'the ripple ring is gone, so nothing trails the cursor')
+
+  // Four corner arms and the accent centre pixel are the whole cursor.
+  ok((layer.match(/pointer-reticle__arm--/g) || []).length === 4, 'the reticle has four corner arms')
+  ok(layer.includes('pointer-reticle__pixel'), 'the reticle has a centre pixel')
+
+  // Text selection must keep its own affordance.
+  ok(layer.includes('pointer-bar'), 'an I-beam is still drawn over text')
+  ok(
+    /data-context=\'text\'\]\s*\.pointer-reticle\s*\{[^}]*opacity:\s*0/.test(css),
+    'the reticle withdraws over text so the I-beam is unambiguous',
+  )
+
+  // Restraint: no glow, no trailing animation beyond the press confirmation.
+  ok(!/box-shadow:\s*0 0 [1-9]\d*px/.test(css.slice(css.indexOf('.pointer-reticle'))), 'no glow on the reticle')
+  ok(!/animation:\s*pointer/.test(css), 'the cursor runs no keyframe animation')
+
+  // Cleanup: the frame and the timer are both released.
+  ok(/cancelAnimationFrame/.test(layer), 'the animation frame is cancelled on unmount')
+  ok(/clearTimeout\(state\.pressTimer\)/.test(layer), 'the press timer is cleared on unmount')
+  ok(/delete rootElement.dataset.cursor/.test(layer), 'the custom cursor attribute is removed on unmount')
+}
+
+section('Interest map: mobile reflow')
+
+{
+  const map = readFileSync(path.join(root, 'src/components/InterestMap.tsx'), 'utf8')
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+
+  // The diagram must not be hidden on small screens any more.
+  const mobileBlock = css.slice(css.indexOf('@media (max-width: 767px)'))
+  ok(
+    !/\.imap__canvas\s*\{\s*display:\s*none/.test(css),
+    'the interest map canvas is no longer hidden on small screens',
+  )
+  ok(
+    /\.imap__svg--mobile/.test(mobileBlock) || /\.imap__svg--mobile/.test(css),
+    'a mobile rail rendering exists for narrow screens',
+  )
+
+  // Same six nodes and same six edges in both layouts.
+  ok(/MOBILE_ORDER/.test(map), 'the narrow-screen order is declared in the component')
+  ok(
+    /interestEdges\.map/.test(map) && (map.match(/interestEdges\.map/g) || []).length === 2,
+    'all six connections are drawn in both the packed and rail layouts',
+  )
+  ok(/preserveAspectRatio="none"/.test(map), 'the rail SVG scales without distorting its strokes')
+  ok(!/display:\s*none[^}]*imap__nodebutton/.test(css), 'no node is hidden on small screens')
 }
 
 section('Pointer layer capability gating')
@@ -770,6 +1293,7 @@ section('Reveal fallback')
 
 {
   // Content must never be permanently hidden by the reveal effect.
+  window.history.replaceState(null, '', '/')
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

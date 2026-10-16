@@ -60,11 +60,12 @@ export default function App() {
       ? {
           title: `${project.title} — ${project.subtitle} · RAHUL.OS`,
           description: project.summary,
+          imageAlt: `RAHUL.OS cover card with a monochrome portrait of Rahul Raj. ${project.title} — ${project.subtitle}.`,
         }
       : route.kind === 'not-found'
         ? {
-            title: 'Route not found · RAHUL.OS',
-            description: 'That address is not part of RAHUL.OS. Available sections and projects are listed here.',
+            title: 'Page not found · RAHUL.OS',
+            description: 'No page exists at that address. Every section and project on this site is listed here.',
           }
         : {
             title: 'RAHUL.OS — Rahul Raj · Data science, AI & game technology',

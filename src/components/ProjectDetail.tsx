@@ -57,10 +57,6 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
               <span className="chip__dot" aria-hidden="true" />
               {project.context}
             </span>
-            <span className="chip">
-              <span className="chip__dot" aria-hidden="true" />
-              {statusNote[project.statusKind]}
-            </span>
           </div>
         </div>
 
@@ -136,24 +132,30 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
 
           <dl className="fact-list">
             <div className="fact-list__head mono">
-              <span>Entry data</span>
-              <span>{project.slug}</span>
+              <span>At a glance</span>
+              <span>{categoryLabel[project.category]}</span>
             </div>
             <div className="fact">
-              <dt>Category</dt>
-              <dd>{categoryLabel[project.category]}</dd>
+              <dt>What it is</dt>
+              <dd>
+                {project.subtitle}
+                <span>{project.context}</span>
+              </dd>
             </div>
             <div className="fact">
-              <dt>Context</dt>
-              <dd>{project.context}</dd>
-            </div>
-            <div className="fact">
-              <dt>Role</dt>
+              <dt>What I worked on</dt>
               <dd>{project.role}</dd>
             </div>
             <div className="fact">
+              <dt>Main challenge</dt>
+              <dd>{project.challenge}</dd>
+            </div>
+            <div className="fact">
               <dt>Status</dt>
-              <dd>{project.statusLabel}</dd>
+              <dd>
+                {project.statusLabel}
+                <span>{statusNote[project.statusKind]}</span>
+              </dd>
             </div>
             <div className="fact">
               <dt>Technologies</dt>

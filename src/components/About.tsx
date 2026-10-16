@@ -9,12 +9,11 @@ export function About() {
           index="01"
           label="About"
           id="about-title"
-          title="Curiosity, pointed at systems that have to work."
+          title="From Information Science to data science."
           note={
             <p>
-              A short account of how an Information Science degree turned into embedded
-              software, game technology QA and a move into data science — written without
-              the usual <strong>self-mythologising</strong>.
+              An Information Science degree, then embedded software, then technical QA, and
+              now a Master of Data Science.
             </p>
           }
         />
@@ -29,41 +28,30 @@ export function About() {
 
             <p>
               My degree at Presidency University in Bengaluru is where the interest in
-              systems started. Software that sits close to the hardware asks for a
-              particular kind of attention: what is the machine actually doing, and how
-              would I know?
+              systems started. Software that sits close to the hardware asks a particular
+              kind of question: what is the machine actually doing, and how would I know?
             </p>
 
             <p>
-              <strong>Tata Elxsi</strong> turned that into work. Embedded C and C++ on
+              <strong>Tata Elxsi</strong> turned that into work: Embedded C and C++ on
               Embedded Linux, in the automotive domain around{' '}
-              <strong>advanced driver assistance systems</strong> — where the feedback loop
-              is physical and the cost of a missed edge case is not theoretical. I learned to
-              be careful there, and I liked that it was not optional.
+              <strong>advanced driver assistance systems</strong>, where a missed edge case
+              has physical consequences.
             </p>
 
             <p>
-              <strong>Rockstar Games India</strong> moved me to the other end of the scale:
-              technical QA inside a AAA development environment on the announced Grand Theft
-              Auto VI project. Finding and documenting defects, supporting reproduction and
-              regression testing, and working with in-house profiling tools focused on
-              stability and performance. Large, interdependent software; small, specific
-              details; constant communication.
+              <strong>Rockstar Games India</strong> was the other end of the scale: technical
+              QA inside a AAA development environment, on the announced Grand Theft Auto VI
+              project. Finding and documenting defects, supporting reproduction and
+              regression testing, and working with in-house profiling tools for stability and
+              performance — large, interdependent software where the details are small and
+              specific.
             </p>
 
             <p>
-              Now I am at Monash studying data science — the part of the stack I had used
-              without formalising: statistics, modelling, and what it takes to make a claim
-              that the data actually supports. Alongside coursework I have worked on a web
-              and data project using React, GraphQL and PostgreSQL.
-            </p>
-
-            <p>
-              What connects all of it is a preference for things that are useful and honest
-              about their limits. The work on this site is deliberately described at the
-              stage it actually reached — one project built, one designed as an academic
-              proposal, one explored in simulation. Accurate is more interesting to me than
-              impressive.
+              Now I am at Monash studying data science: statistics, modelling, and what it
+              takes to make a claim the data actually supports. Alongside coursework I have
+              worked on a web and data project using React, GraphQL and PostgreSQL.
             </p>
 
             <div className="about__signature">
@@ -75,8 +63,7 @@ export function About() {
           <aside className="about__aside">
             <dl className="fact-list">
               <div className="fact-list__head mono">
-                <span>Verified record</span>
-                <span>Résumé</span>
+                <span>At a glance</span>
               </div>
               <div className="fact">
                 <dt>Based in</dt>

@@ -1,6 +1,7 @@
 import { ArrowRight, GraduationCap, Mail, MapPin } from 'lucide-react'
 import { profile } from '../data/profile'
 import { asset } from '../lib/assets'
+import { DotSnake } from './DotSnake'
 import { PointerGrid } from './PointerGrid'
 import { SignalMotif } from './SignalMotif'
 
@@ -31,6 +32,7 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
     <section className="hero" id="top" aria-labelledby="hero-title">
       <div className="hero__bg">
         <span className="dot-field" />
+        <DotSnake motionEnabled={motionEnabled} />
         <PointerGrid className="pointer-grid--hero" motionEnabled={motionEnabled} />
         <SignalMotif />
       </div>
@@ -47,11 +49,10 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
                 <span className="chip__dot" aria-hidden="true" />
                 {profile.studies.status}
               </span>
-              <span className="mono faint">SYSTEM ONLINE · REV 0.1</span>
             </div>
 
             <h1 className="hero__wordmark" id="hero-title">
-              RAHUL<em>.RAJ</em>
+              RAHUL<em className="wordmark__dot">.RAJ</em>
               <span className="vh">
                 {' '}
                 — {profile.name}: {profile.headline}
@@ -59,7 +60,7 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
             </h1>
 
             <p className="hero__role">
-              Data science · AI · Game technology · Embedded systems
+              Embedded software · Technical QA · Data science
             </p>
 
             <p className="hero__headline">{profile.headline}</p>
@@ -86,7 +87,6 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
                 <GraduationCap size={13} aria-hidden="true" />
                 {profile.studies.program}, {profile.studies.institution} — {profile.studies.intake}
               </span>
-              <span>Resume-based · no trackers</span>
             </div>
           </div>
 

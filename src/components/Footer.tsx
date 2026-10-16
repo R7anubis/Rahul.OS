@@ -36,7 +36,12 @@ export function Footer({ onNavigate }: FooterProps) {
           <div>
             <span className="footer__mark">
               <DotMark size={16} />
-              RAHUL<span style={{ color: 'var(--text-faint)' }}>.RAJ</span>
+              {/* One text run: as separate flex children the container's gap
+                  landed between "RAHUL" and the period. */}
+              <span className="wordmark">
+                RAHUL
+                <span className="wordmark__dot footer__mark-dot">.RAJ</span>
+              </span>
             </span>
             <p className="footer__tagline">{profile.tagline}</p>
             <p className="mono faint" style={{ marginTop: '1rem' }}>
@@ -44,8 +49,8 @@ export function Footer({ onNavigate }: FooterProps) {
             </p>
           </div>
 
-          <nav className="footer__col" aria-label="Sitemap">
-            <h2>Sitemap</h2>
+          <nav className="footer__col" aria-label="Sections">
+            <h2>Sections</h2>
             <div className="footer__links">
               {sections.map((section) => (
                 <a
@@ -89,7 +94,6 @@ export function Footer({ onNavigate }: FooterProps) {
         <div className="footer__meta">
           <div className="footer__meta-list">
             <span>© {year} {profile.name}</span>
-            <span>Revision 0.1 — personal build, not a software release</span>
             <span>No cookies · no analytics · no tracking</span>
           </div>
           <a className="footer__link to-top" href="#top" onClick={toTop}>
@@ -99,11 +103,8 @@ export function Footer({ onNavigate }: FooterProps) {
         </div>
 
         <p className="footer__disclaimer">
-          RAHUL.OS is a personal site. It is not affiliated with, endorsed by or an
-          implementation of any product, company or design system it refers to — including
-          employers named on this page. Project visuals are original conceptual diagrams
-          drawn for this site, not screenshots. Unlisted information has been omitted rather
-          than estimated.
+          Personal site — not affiliated with or endorsed by any company or product named
+          here, including employers.
         </p>
       </div>
     </footer>

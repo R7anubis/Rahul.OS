@@ -9,8 +9,8 @@ interface NotFoundProps {
 }
 
 /**
- * Not-found experience: explains what happened, offers the real routes, and
- * keeps the reader inside the system rather than dropping them at a dead end.
+ * Not-found page: says what happened and offers every real destination, so a
+ * broken link is still a way into the site.
  */
 export function NotFound({ path, onNavigate }: NotFoundProps) {
   const go = (hash: string) => (event: React.MouseEvent) => {
@@ -20,14 +20,13 @@ export function NotFound({ path, onNavigate }: NotFoundProps) {
 
   return (
     <section className="notfound shell" aria-labelledby="notfound-title">
-      <p className="notfound__code mono">ERROR 404 · ROUTE NOT FOUND</p>
+      <p className="notfound__code mono">ERROR 404</p>
       <h1 className="notfound__title" id="notfound-title">
-        That address isn’t part of this system.
+        That page doesn’t exist.
       </h1>
       <p>
-        Nothing is mounted at <code className="mono-plain">&ldquo;{path}&rdquo;</code>. It may be a
-        mistyped link, or a project that has been renamed. Everything that does exist is
-        listed below.
+        No page at <code className="mono-plain">&ldquo;{path}&rdquo;</code> — it may be a mistyped
+        link, or a project that has been renamed. Everything on the site is listed below.
       </p>
 
       <div className="notfound__actions">

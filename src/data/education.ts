@@ -6,7 +6,7 @@ export interface EducationEntry {
   institution: string
   location: string
   period: string
-  /** true when the period is stated on the supplied résumé */
+  /** true when the period is confirmed rather than approximate */
   periodVerified: boolean
   status: 'In progress' | 'Completed' | 'Not stated'
   note: string

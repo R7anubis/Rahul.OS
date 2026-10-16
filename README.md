@@ -12,16 +12,18 @@ interaction that earns its place on the page.
 - **Real project filtering**, a **Ctrl/⌘ + K command palette**, an **interactive timeline**
   and a keyboard-accessible **interest map**
 - **Dark and light themes**, persisted, following the OS on a first visit
-- **A precision pointer language** — custom cursor, click ripples and a pointer-reactive
-  grid — that is capability-gated and never replaces the native cursor unsafely
+- **A precision pointer language** — a bracket reticle cursor over a pointer-reactive
+  dot grid — that is capability-gated and never replaces the native cursor unsafely
+- **A dot-matrix snake** that swims through the hero's own dot grid and occasionally
+  notices the cursor
 - **Reduced-motion support**, plus an explicit motion toggle that changes real behaviour
 - No backend, no analytics, no cookies, no trackers
 
-> *Note on the pointer layer:* the design is deliberate and restrained. The cursor is a
-> 4px dot with a thin ring, the ripples are one accent hairline ring per click, and the
-> reactive grid lifts the existing dot texture slightly around the pointer. Nothing
-> trails, nothing pulses while idle, and the whole layer disappears on touch, pen or
-> reduced motion.
+> *Note on the pointer layer:* the design is deliberately restrained. The cursor is four
+> angular corner brackets around a 3px accent pixel — no circular follower, no glow, no
+> trail. A click flips one attribute for 160 ms rather than adding nodes to the DOM.
+> Nothing moves while the pointer is still, and the whole layer disappears on touch, pen
+> or reduced motion.
 
 ---
 
@@ -38,7 +40,7 @@ npm run dev          # → http://localhost:5173
 | `npm run build` | Type-check (`tsc -b`) then build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run typecheck` | TypeScript only, no emit |
-| `npm run smoke` | Renders every route and asserts links, a11y and content rules (128 checks) |
+| `npm run smoke` | Renders every route and asserts links, a11y, metadata and content rules (227 checks) |
 | `npm run assets:images` | Regenerate every image from `assets-src/portrait-source.jpeg` |
 
 Node 20+ is required (developed on Node 22).
@@ -76,7 +78,8 @@ a third-party CDN, so the site renders identically offline.
 ```
 src/
   components/            interface components
-    PointerLayer.tsx     capability-gated cursor, ripples, crosshair
+    PointerLayer.tsx     capability-gated reticle cursor, crosshair
+    DotSnake.tsx         canvas snake that lives in the hero dot grid
     PointerGrid.tsx      low-contrast pointer-reactive dot field
     DiagramExplorer.tsx  interactive architecture diagram (stages + readout)
     figures/             original SVG project illustrations
@@ -159,9 +162,9 @@ Four rules govern it, all enforced in `src/hooks/usePointerCapability.ts`:
    `cursor: none` — is written by the layer itself and deleted on unmount or when
    capability drops. So the native cursor is hidden *only* while a replacement is
    on screen, and a reload with JavaScript disabled simply shows the normal cursor.
-3. **Selection is preserved.** Over text the layer draws an I-beam bar instead of a
-   ring, and `cursor: none` never applies to form fields or `contenteditable`
-   because the component short-circuits to the text state first.
+3. **Selection is preserved.** Over text the reticle withdraws entirely and an
+   I-beam bar takes its place, and `cursor: none` never applies to form fields or
+   `contenteditable` because the component short-circuits to the text state first.
 4. **No idle animation.** Every write happens inside one `requestAnimationFrame`
    loop that only runs on pointer movement. There is no loop, no drift and no
    trail when the pointer is still.
@@ -169,6 +172,49 @@ Four rules govern it, all enforced in `src/hooks/usePointerCapability.ts`:
 Keyboard users are unaffected: focus rings, tab order and the skip link are
 untouched, and every interaction the pointer layer decorates also exists as a real
 button (the diagram stages, the interest map, the timeline milestones).
+
+### The dot snake
+
+`src/components/DotSnake.tsx` draws a snake onto a canvas layered inside
+`.hero__bg` — above the CSS dot field, below the hero content, and inside a
+stacking context that cannot cover text. It never receives a pointer event.
+
+- **It rides the existing grid.** Body dots snap to the same 12px pitch as
+  `.dot-field` (`PITCH` in the component is checked against the stylesheet by the
+  smoke test), so the snake reads as grid dots lighting up in sequence rather than
+  a second pattern drawn on top. Snapping uses hysteresis — a dot keeps its cell
+  until it has moved past 55% of a pitch — which removes the boundary flicker
+  plain rounding produces.
+- **Movement is a rope, not noise.** The head steers with a bounded turn rate
+  driven by two slow sines; every following dot is pulled to a fixed distance
+  behind the one ahead. Sudden direction changes are impossible by construction,
+  and curvature is continuous. Horizontal travel wraps modulo the canvas width, so
+  leaving one edge is the same motion as entering the other.
+- **A small state machine.** `cruise`, `pause`, `dive` (fade out, relocate, fade
+  back in), `surface`, and the encounter states `approach`, `tap`, `recoil`. Pauses
+  and dives are scheduled 7–16 s apart and vary in duration; a dive is the "gone
+  into the grid" case.
+- **Cursor encounters are rare.** They need the pointer inside the hero, within
+  300 px of the head, and clear of a cooldown that runs 14–30 s after each one. The
+  snake approaches at a limited turn rate, taps within 24 px, and recoils. A single
+  accent pixel marks the contact and fades over 0.9 s. It never chases, follows or
+  hovers.
+- **Cost.** Nothing mounts on touch-only devices or under reduced motion. One
+  `requestAnimationFrame` loop, paused by `visibilitychange` and by an
+  `IntersectionObserver` when the hero scrolls away. Previous cells are cleared
+  individually instead of repainting the canvas, and device pixel ratio is capped
+  at 2. A missing 2D context disables the effect rather than throwing.
+
+### The interest map on narrow screens
+
+The packed six-node canvas needs width. Rather than hiding it below 768px, the
+nodes reflow into a column and the edges become a rail — a spine on the left with a
+stub into each node it connects to. The narrow-screen order
+(`MOBILE_ORDER` in `InterestMap.tsx`) is chosen so five of the six connections join
+neighbouring rows; only AI/ML–Software spans a gap. Row height is published from the
+component as `--imap-row`, so the rail geometry and the layout cannot drift apart.
+The buttons stay in data order in the DOM — `order` moves them visually only — so
+screen readers still get the documented order.
 
 ## Accessibility
 
@@ -187,12 +233,13 @@ button (the diagram stages, the interest map, the timeline milestones).
 
 ## Performance
 
-Production build after this refinement: **~56 kB CSS (10.3 kB gzipped)** and
-**~349 kB JS (106.7 kB gzipped)**, of which React is the bulk. The pointer layer
-adds roughly 8 kB of CSS and 2 kB of JS — there is no animation library, and
-motion remains CSS transitions plus two tiny `requestAnimationFrame` loops that
-only run under an active pointer. Fonts are two preloaded variable files
-(~140 kB for both families).
+Production build: **58.1 kB CSS (10.7 kB gzipped)** and **353 kB JS (108 kB
+gzipped)**, of which React is the bulk. There is no animation library. Motion is
+CSS transitions plus three small `requestAnimationFrame` loops, each of which runs
+only while something is actually happening: the pointer layer under an active
+pointer, the scroll-progress hairline under scroll, and the snake while the hero is
+on screen and the tab is visible. Fonts are two preloaded variable files (~140 kB
+for both families).
 
 ---
 
@@ -243,7 +290,7 @@ npm run smoke
 ```
 
 This does not test mocks. It boots the **real Vite pipeline**, renders the real
-`App` component, and checks 128 assertions:
+`App` component, and checks 227 assertions:
 
 1. **Static render, per route** — heading structure, every in-page anchor
    resolving to a real element (and not to the 404 view), no dead `href="#"`,
@@ -264,7 +311,29 @@ This does not test mocks. It boots the **real Vite pipeline**, renders the real
    and with a fine pointer: the layer mounts only in the last case, and unmounting
    always restores the native cursor.
 6. **Reveal fallback** — after the failsafe window, no element is left hidden.
-7. **Content guards** — the honesty rules described above.
+7. **Content guards** — the honesty rules described above, plus a list of phrases
+   that were deliberately removed (process notes, repeated disclaimers, AI-style
+   constructions) which must not come back.
+8. **SEO and metadata consistency** — the canonical origin in `src/lib/site.ts`,
+   `index.html`, `robots.txt` and `sitemap.xml` must all agree; no crawler-facing
+   URL may be relative; the unverified domain may not appear in any crawlable file;
+   and the structured-data image must exist on disk in `public/`.
+9. **Route metadata** — project routes set their own title and description, the
+   canonical tag stays on the document root, and an unknown route reports itself
+   as not found.
+10. **Diagram explorer** — the heading id is project-specific and unique,
+    `aria-labelledby` resolves to it, hovering another stage leaves the committed
+    selection untouched, and click plus arrow keys move it.
+11. **Wordmark** — the rendered text of the header, hero and footer wordmarks is
+    `RAHUL.RAJ` with no whitespace, and the footer mark keeps its intended gap
+    around the glyph while the period reclaims the tracking that `letter-spacing`
+    inserts before it.
+12. **Snake and reticle** — gating decisions, layering, grid-pitch agreement, and
+    the specific cleanups (cancelled frame, cleared timer, disconnected observers,
+    removed `data-cursor`) are asserted against the source and stylesheet, because
+    jsdom has neither a canvas nor a layout engine.
+13. **Interest map reflow** — the pack is no longer hidden on small screens, the
+    rail rendering exists, and both layouts draw all six connections.
 
 While building this, the suite caught two real bugs (the `#top` wordmark and the
 `#main` skip link both routing to the not-found view), which are now
@@ -287,9 +356,10 @@ from a ~350px project card through to a ~700px detail panel.
 The automated suite runs in jsdom, which cannot see pixels or paint. These need a
 real browser before publishing:
 
-1. **Pointer layer feel** — that the dot/ring tracks without perceptible lag, that
-   the ring does not jitter at the boundary between an action and text, and that
-   the ripple size reads as restrained at your DPI.
+1. **Reticle feel** — that the bracket box tracks without perceptible lag, that the
+   corner arms do not jitter at the boundary between an action and text, and that
+   the 3px accent pixel reads as restrained at your DPI rather than as a bright
+   dot.
 2. **Pointer-grid sheen intensity** — confirm the reactive grid over the hero and
    contact sections is subtle enough. It is `opacity: 0.5` on the dot mask; lower
    it if your monitor makes it too present.
@@ -301,17 +371,26 @@ real browser before publishing:
    acknowledgement rather than a glitch, in both themes.
 5. **Reveal timing** — scroll the full page and confirm sections reveal as they
    enter without feeling sluggish or like content is playing catch-up.
-6. **Responsive widths** — 1600, 1280, 820 and 375px, plus 360px as the floor.
-   The diagram explorer stacks below 1180px; check the figure stays legible there.
+6. **Responsive widths** — 320, 375, 390, 430, 768 and 1024px, plus 1600px and a
+   desktop width. Two things specifically need eyes: the interest map's rail layout
+   below 768px (the stubs should meet each node's left edge, and no label should
+   clip or overlap), and the diagram explorer, which stacks below 1180px.
 7. **Hybrid devices** — a touchscreen laptop should start with no custom cursor
    after the first touch, and restore it if you return to the trackpad.
 8. **Screen reader pass** — VoiceOver or NVDA over the diagram explorer, the
    interest map and the timeline.
+9. **Snake behaviour over time** — leave the hero on screen for several minutes and
+   confirm: speed and pause lengths vary, horizontal wrap reads as continuous (no
+   visible teleport), the dive-and-resurface is not jarring, and cursor encounters
+   stay infrequent. Then check CPU/temperature on a low-powered laptop — the loop
+   pauses when the tab is hidden and when the hero scrolls away, but that is
+   asserted in code, not measured.
 
 Responsive targets designed for: **≥1600px** large desktop, **1280–1440px**
-laptop, **768–1023px** tablet, **≤767px** mobile (with 360px as the floor). The
-navigation collapses to the compact sheet below 1024px; the interest-map canvas
-hands off to its list alternative below 768px.
+laptop, **768–1023px** tablet, **≤767px** mobile (with 320px as the floor). The
+navigation collapses to the compact sheet below 1024px; the interest map reflows
+from its packed canvas to the rail column below 768px, and the snake is not mounted
+at all below 480px or without a fine pointer.
 
 ---
 
@@ -346,10 +425,23 @@ npx gh-pages -d dist        # or push dist/ to the gh-pages branch
 resolves public assets against it — so the same source builds correctly at a
 domain root or under a subdirectory.
 
-### Custom domain
+### Canonical domain
 
-Update the canonical URL and Open Graph URLs in `index.html` (currently
-`https://rahulraj.dev/`) and the `Sitemap` line in `public/robots.txt`.
+The canonical origin is currently the Vercel deployment,
+`https://rahul-os-ten.vercel.app`. It is declared in four places that must be
+changed together:
+
+| File | What to change |
+| --- | --- |
+| `src/lib/site.ts` | `SITE_URL` |
+| `index.html` | canonical, `og:url`, `og:image`, `twitter:image`, structured data |
+| `public/robots.txt` | the `Sitemap:` line |
+| `public/sitemap.xml` | the `<loc>` entry |
+
+The smoke test asserts that all four agree, so a partial change fails the suite
+rather than shipping quietly. `rahulraj.dev` is deliberately absent everywhere:
+it is not verified as owned or configured, and an unverified domain must not be
+advertised as canonical.
 
 ---
 

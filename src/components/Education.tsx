@@ -10,11 +10,10 @@ export function Education() {
           index="04"
           label="Education"
           id="education-title"
-          title="Two degrees, one direction."
+          title="Qualifications and short courses."
           note={
             <p>
-              Degree wording and periods follow the supplied résumé. No grades, honours or
-              awards are listed, because none were supplied.
+              The Master of Data Science is in progress; the B.Tech is complete.
             </p>
           }
         />
@@ -48,7 +47,7 @@ export function Education() {
         <div className="dev-list">
           <div className="dev-list__head mono">
             <span>Professional development</span>
-            <span>LinkedIn Learning · as listed on the résumé</span>
+            <span>LinkedIn Learning</span>
           </div>
           <div className="dev-list__rows">
             {development.map((course) => (

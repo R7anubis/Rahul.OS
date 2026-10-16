@@ -12,7 +12,7 @@ export function Toolchain() {
   return (
     <div className="toolchain">
       <div className="toolchain__inner shell">
-        <span className="toolchain__label mono">Toolchain · as listed on the résumé</span>
+        <span className="toolchain__label mono">Toolchain</span>
         <ul className="toolchain__list" aria-label="Technologies worked with">
           {tools.map((tool) => (
             <li key={tool}>{tool}</li>

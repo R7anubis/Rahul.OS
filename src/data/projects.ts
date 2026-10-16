@@ -5,11 +5,9 @@
  * case study (Rockstar Games technical QA). Nothing else is presented as a
  * portfolio project: interests are covered in the interest map, not here.
  *
- * Honesty rules baked into the data model:
- *  - `statusKind` distinguishes built work from proposals and experience.
- *  - every project carries a `disclaimer` that is rendered prominently.
- *  - the figures are original illustrations generated in this repo. They are
- *    never described as screenshots of Rahul's software.
+ * `statusKind` distinguishes built work from proposals and professional
+ * experience, and each entry carries one scope note. The figures are original
+ * illustrations drawn in this repo, labelled as such once per page.
  */
 
 export type ProjectCategoryId = 'ai-ml' | 'systems' | 'academic' | 'gaming-qa'
@@ -67,6 +65,8 @@ export interface Project {
   summary: string
   /** one paragraph for the detail page lede */
   lede: string
+  /** the part that took the most thought, in one line */
+  challenge: string
   period: string
   technologies: string[]
   figure: FigureKind
@@ -115,8 +115,10 @@ export const projects: Project[] = [
     summary:
       'An Android app project for facial similarity matching, documented in a research paper: Firebase ML Kit face and landmark detection on device, Firebase for storage and accounts, with the similarity scoring itself set out as planned work.',
     lede:
-      'SameFace is about resemblance: capture a face, compare it with others, and surface the people who look similar. The design is documented in a research paper — ML Kit does detection and landmarks on device, Firebase handles storage and accounts, and the scoring that would turn landmarks into a match is described as the next implementation step rather than a finished component.',
+      'SameFace is about resemblance: capture a face, compare it with others, and surface the people who look similar. The design is documented in a research paper — ML Kit does face and landmark detection on device, Firebase handles storage and accounts, and the scoring that would turn landmarks into a match is written up as the next step.',
     period: 'Research paper · student project',
+    challenge:
+      'ML Kit returns landmark coordinates, not a face embedding, so the comparison step needs a method of its own.',
     technologies: [
       'Kotlin',
       'Java',
@@ -129,7 +131,7 @@ export const projects: Project[] = [
       'OTP / 2FA',
     ],
     figure: 'sameface-landmarks',
-    figureCaption: 'Conceptual landmark diagram — original illustration, not a screenshot',
+    figureCaption: 'Landmark diagram — original illustration',
     sourceNote:
       'Primary source: “SameFace App: Facial Similarity Matching using Firebase ML FaceKit”, a research paper by Rahul Raj, Department of Information Science and Engineering, Presidency University. Section references below point into that paper.',
     sections: [
@@ -141,9 +143,9 @@ export const projects: Project[] = [
         ],
       },
       {
-        heading: 'Documented architecture',
+        heading: 'How it is put together',
         body: [
-          'The paper (Section IV) breaks the system into a small number of components: data storage, facial similarity matching, authentication and user communication, sitting behind the Android app itself. Keeping those concerns separate is what makes the design legible — each one can be reasoned about, and replaced, on its own.',
+          'The paper (Section IV) splits the system into four parts behind the Android app: data storage, similarity matching, authentication and user communication. Each can be reasoned about — and replaced — on its own.',
         ],
         bullets: [
           'Android app — Kotlin/Java on Android Studio, camera capture, matching UI and chat.',
@@ -156,15 +158,14 @@ export const projects: Project[] = [
       {
         heading: 'What ML Kit does — and what it does not',
         body: [
-          'This is the part worth being exact about, because the vocabulary in this field is slippery. ML Kit\u2019s on-device Face Detection API returns a bounding box for each face, landmark coordinates (eyes, nose, mouth, ears, cheeks), face contours, and classification signals such as smiling and eyes-open probability.',
-          'It does not return a face embedding. Detection gives you numbers describing where features are in the image; it does not give you a vector describing who the face is, and it contains no comparison or scoring function. The paper groups detection, landmarks and "face recognition" together under the FaceKit heading, but the public Face Detection API stops at the first two.',
-          'So a similarity judgement needs a separate method, and there are broadly two families. The first compares landmark geometry directly — cheap, explainable, and sensitive to pose and lighting. The second runs the face through an embedding model trained for verification and compares vectors in that space; the paper\u2019s related-work section cites exactly this approach in FaceNet and VGGFace.',
+          'Worth being exact about, because the vocabulary here is slippery. ML Kit\u2019s on-device Face Detection API returns a bounding box per face, landmark coordinates (eyes, nose, mouth, ears, cheeks), contours, and classification signals such as smiling probability.',
+          'It does not return a face embedding, and it contains no comparison or scoring function. Detection gives numbers describing where features are in an image; it does not give a vector describing who the face is. The paper groups detection, landmarks and \u201cface recognition\u201d under its FaceKit heading, but the public API stops at the first two. A similarity judgement therefore needs a separate method — either comparing landmark geometry directly, or running the face through an embedding model trained for verification and comparing vectors in that space.',
         ],
       },
       {
         heading: 'Documented, in development, or proposed',
         body: [
-          'Because this project spans a design and the code that follows it, it is worth separating the three. Everything below is drawn from the paper; nothing further is claimed.',
+          'This project spans a written design and the code that would follow it, so the three are separated here. Everything below comes from the paper.',
         ],
         bullets: [
           'Documented design — the component architecture, ML Kit face and landmark detection, Firebase storage, Firebase Authentication with OTP-based two-factor verification, explicit user consent for storing facial data, and chat over the realtime database.',
@@ -173,16 +174,9 @@ export const projects: Project[] = [
         ],
       },
       {
-        heading: 'Evaluation, as the paper sets it out',
+        heading: 'Evaluation',
         body: [
-          'The paper\u2019s evaluation section is prospective. It describes how the app could be evaluated — matching accuracy measured against ground-truth data, plus user surveys for satisfaction, alongside system scalability — rather than reporting results that were obtained.',
-          'No accuracy figures, evaluation outcomes, trained models or user testing are reported in the text, so none are claimed here. The paper does name the honest difficulties: lighting, pose and age all degrade matching, which makes robustness in detection, feature extraction and scoring the hard part of the problem.',
-        ],
-      },
-      {
-        heading: 'What I took from it',
-        body: [
-          'Writing it up forced a distinction I now use everywhere: separate what the tooling actually returns from what you want it to mean. A landmark is a coordinate. "These two people look alike" is a claim built on top of coordinates, and it needs its own method, its own error analysis and its own honesty about when it fails.',
+          'The paper\u2019s evaluation section is prospective: it describes how the app could be evaluated — matching accuracy against ground-truth data, and user surveys — rather than reporting results. No accuracy figures or user testing appear in it, so none are claimed here. The paper does name the hard cases: lighting, pose and age all degrade matching.',
         ],
       },
     ],
@@ -213,7 +207,7 @@ export const projects: Project[] = [
       kind: 'sameface-architecture',
       heading: 'Architecture and flow',
       caption:
-        'Architecture diagram based on the documented design — original illustration, not a screenshot. Select a stage to see what the paper says about it.',
+        'Architecture as documented in the paper. Select a stage for what the paper says about it.',
       stages: [
         {
           id: 'capture',
@@ -248,7 +242,7 @@ export const projects: Project[] = [
           label: 'Similarity',
           status: 'proposed',
           detail:
-            'The scoring layer. The paper is explicit that a custom ML similarity algorithm is planned for a future implementation, trained on a dataset of facial features. ML Kit itself provides no embeddings and no comparison.',
+            'The scoring layer. The paper is explicit that a custom similarity algorithm is planned for a future implementation. ML Kit itself provides no embeddings and no comparison function.',
         },
         {
           id: 'chat',
@@ -260,9 +254,9 @@ export const projects: Project[] = [
       ],
     },
     disclaimer: {
-      label: 'Scope of this page',
+      label: 'Source',
       text:
-        'Summarised from the SameFace research paper (Rahul Raj, Presidency University) as the primary source. Compared to that paper this page separates documented design from proposed work: the custom similarity algorithm, evaluation results and iOS support are described there as future work and are not presented here as built. No accuracy figures, trained models, user counts or production status are claimed. Every diagram on this page is an original illustration.',
+        'Summarised from the SameFace research paper (Rahul Raj, Presidency University). The similarity algorithm, evaluation results and iOS support are future work in that paper and are shown here as future work.',
     },
   },
 
@@ -280,15 +274,17 @@ export const projects: Project[] = [
     lede:
       'SCAMS is an academic project about the scams that target students — especially new and international students arriving in a new country and a new financial system. It was developed as a project-management and data-focused university project covering scam-risk detection, a student application, real-time alerts and escalation, governance, and pilot evaluation.',
     period: 'University project',
+    challenge:
+      'Designing the response — risk model, escalation path and governance — before building any of it.',
     technologies: ['Project management', 'Risk assessment', 'Alerting workflow', 'Governance', 'Pilot evaluation', 'Hybrid delivery'],
     figure: 'scams-workflow',
-    figureCaption: 'Conceptual system and escalation flow — proposed design, not deployed software',
+    figureCaption: 'System and escalation flow — original illustration of the proposed design',
     sections: [
       {
         heading: 'The problem being framed',
         body: [
           'Tele-fraud aimed at students is a trusted-voice problem as much as a technical one: messages that arrive looking like they come from a bank, a landlord, a university or an employer, at exactly the moment a student is least equipped to check them.',
-          'The project framed the response around speed and clarity — recognising the pattern, deciding how risky it looks, and telling someone in time to matter.',
+          'The project framed the response around speed and clarity: recognise the pattern, decide how risky it looks, and tell someone in time to be useful.',
         ],
       },
       {
@@ -306,15 +302,14 @@ export const projects: Project[] = [
       {
         heading: 'Project management approach',
         body: [
-          'The work sat in an academic project-management setting, which shaped it as much as the technical design did: staged delivery, explicit scope boundaries, governance over student data, and a pilot plan rather than an immediate rollout.',
-          'Delivery planning used hybrid methods — structure where the requirements were known, iteration where they were still being discovered.',
+          'The work sat in an academic project-management setting, which shaped it as much as the technical design did: staged delivery, explicit scope boundaries, governance over student data, and a pilot plan rather than a rollout.',
+          'Planning used hybrid methods — structure where the requirements were known, iteration where they were still being worked out.',
         ],
       },
       {
-        heading: 'What is conceptual here',
+        heading: 'What stage this reached',
         body: [
-          'Everything visual on this page is a proposed design, not a screenshot. There is no deployed service, no operational integration with any bank, university or platform, and no measured detection accuracy — none of that has been claimed.',
-          'What the project does represent is a structured attempt to design a response before building it: define the risk, define the escalation, define the ethics, then decide what to build.',
+          'This is design work: the risk model, the escalation path and the governance around student data were planned and written up, and a pilot was scoped. Nothing was built or deployed, and there are no measured detection results.',
         ],
       },
     ],
@@ -327,9 +322,9 @@ export const projects: Project[] = [
       { title: 'Learn', detail: 'Aggregated, de-identified patterns would inform guidance and campus awareness in a pilot.' },
     ],
     disclaimer: {
-      label: 'Conceptual design',
+      label: 'Status',
       text:
-        'SCAMS is presented as an academic proposal and pilot design. It is not deployed, it has no operational integrations, and no detection accuracy, fraud-prevention outcome or user count is claimed. The interface and flow shown are original illustrations of the proposed design.',
+        'Academic proposal and pilot design, not deployed software: no operational integrations, no detection accuracy and no user numbers exist for it.',
     },
   },
 
@@ -347,6 +342,8 @@ export const projects: Project[] = [
     lede:
       'A vehicle in CARLA needs steering and throttle decisions every tick. This work built that loop in Python on ROS 2: pick a waypoint ahead of the vehicle, measure the error between where it is and where the path says it should be, feed that error to PID controllers, and let the simulation feed the result back.',
     period: 'Study & exploration',
+    challenge:
+      'Keeping the steering usable across the whole speed range, which is what the dynamic look-ahead is for.',
     technologies: ['CARLA', 'ROS 2', 'Python', 'PID control', 'Waypoint following', 'Dynamic look-ahead', 'Turn detection'],
     figure: 'carla-control',
     figureCaption: 'Control-loop block diagram — original illustration of the architecture',
@@ -373,7 +370,7 @@ export const projects: Project[] = [
       {
         heading: 'Notes on scope',
         body: [
-          'This is simulation work, described at the level of the architecture and control approach. No benchmark figures, lap times or measured performance improvements are claimed, because the implementation status and measurements are not documented in the material available for this site.',
+          'This is simulation work, described at the level of the architecture and the control approach. There are no benchmark figures or measured performance improvements to report.',
         ],
       },
     ],
@@ -386,9 +383,9 @@ export const projects: Project[] = [
       { title: 'Command & feedback', detail: 'Commands go back to the CARLA vehicle; the next state closes the loop.' },
     ],
     disclaimer: {
-      label: 'Illustrative architecture',
+      label: 'Status',
       text:
-        'This page documents the approach (CARLA, ROS 2, Python, waypoint following, PID control, dynamic look-ahead, turn detection and vehicle-control logic) rather than a released product. The diagram is an original illustration; no simulated benchmark results or performance claims are made.',
+        'Holds the control approach — waypoint following, PID control, dynamic look-ahead and turn detection — rather than a released product. No simulated benchmarks or performance claims are made.',
     },
   },
 
@@ -406,9 +403,11 @@ export const projects: Project[] = [
     lede:
       'This entry is a description of a job, not a personal project. It covers what my technical QA work involved: finding and documenting defects, supporting reproduction and regression testing, and working with in-house profiling tools focused on stability and performance on the announced Grand Theft Auto VI project.',
     period: 'Sep 2025 – Jun 2026',
+    challenge:
+      'Writing a defect report clearly enough that someone else can reproduce it without asking me anything.',
     technologies: ['Technical QA', 'Functional testing', 'Regression testing', 'Defect reproduction', 'Stability & performance profiling'],
     figure: 'qa-performance',
-    figureCaption: 'Abstract performance profile illustration — not captured from any employer tool',
+    figureCaption: 'Performance profile — original illustration',
     wide: true,
     caseStudy: true,
     sections: [
@@ -427,23 +426,17 @@ export const projects: Project[] = [
         ],
       },
       {
-        heading: 'How this work is presented here',
+        heading: 'What I learned from it',
         body: [
-          'Everything on this page is my own account of my own responsibilities, written at a level that is safe and accurate. It contains no internal tooling, no developer processes, no unreleased content and no information about the game beyond what has been publicly announced.',
-        ],
-      },
-      {
-        heading: 'What the job taught me',
-        body: [
-          'Reproducibility is the whole discipline. A bug report is only as useful as the shortest path someone else can take to see the problem themselves.',
-          'The second thing was tolerance for scale: at AAA size, quality comes from consistent process and clear communication rather than any single heroic pass over the build.',
+          'Reproducibility is the whole discipline. A bug report is only as useful as the shortest path someone else can take to see the problem for themselves.',
+          'The other thing was scale: at AAA size, quality comes out of consistent process and clear communication rather than any single pass over the build.',
         ],
       },
     ],
     disclaimer: {
       label: 'Confidentiality',
       text:
-        'This is professional experience, not a product Rahul owns. No proprietary interface, tool or process is depicted; the illustration is an abstract diagram of this repository\u2019s own making. Nothing here implies endorsement by Rockstar Games or any employer.',
+        'Professional experience, not a project I own. Nothing proprietary is described or depicted, and nothing here implies endorsement by Rockstar Games or any other employer.',
     },
     experienceId: 'rockstar',
   },
