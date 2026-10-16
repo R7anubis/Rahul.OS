@@ -68,7 +68,7 @@ export default function App() {
             description: 'No page exists at that address. Every section and project on this site is listed here.',
           }
         : {
-            title: 'RAHUL.OS — Rahul Raj · Data science, AI & game technology',
+            title: 'RAHUL.OS — Rahul Raj · Data science, embedded software and QA',
             description: `${profile.summary} Based in ${profile.location}.`,
           },
   )
