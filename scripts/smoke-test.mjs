@@ -620,6 +620,76 @@ ok(
   'Rockstar dates match the résumé',
 )
 
+section('Experience timeline: company / role separation')
+
+{
+  // This one is a pure CSS layout relationship, so jsdom cannot observe it —
+  // it has no style engine for external stylesheets. The concatenation appeared
+  // only because both elements were inline <span>s sharing one line, so the
+  // guard asserts the two halves that make the fix real:
+  //   1. the stylesheet declares them block-level, which is what separates them;
+  //   2. the markup keeps all four entries as distinct org/role elements.
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+
+  const ruleBody = (selector) => {
+    const start = css.indexOf(`${selector} {`)
+    if (start === -1) return ''
+    const open = css.indexOf('{', start)
+    const close = css.indexOf('}', open)
+    return css.slice(open + 1, close)
+  }
+
+  const orgBody = ruleBody('.milestone__org')
+  const roleBody = ruleBody('.milestone__role')
+
+  ok(Boolean(orgBody), '.milestone__org rule exists')
+  ok(Boolean(roleBody), '.milestone__role rule exists')
+  ok(
+    /display:\s*block/.test(orgBody),
+    'company name is block-level, so it cannot share a line with the role',
+  )
+  ok(
+    /display:\s*block/.test(roleBody),
+    'role is block-level, so it starts on its own line',
+  )
+  ok(
+    /margin-top:\s*\S/.test(roleBody),
+    'role keeps a declared vertical offset from the company name',
+  )
+  // Typography and colour must survive the display fix.
+  ok(/color:\s*var\(--text\)/.test(orgBody), 'company name keeps its colour token')
+  ok(/color:\s*var\(--text-faint\)/.test(roleBody), 'role keeps its colour token')
+  ok(
+    /font-size:\s*var\(--fs-h4\)/.test(orgBody) && /font-size:\s*var\(--fs-mono\)/.test(roleBody),
+    'font sizes are unchanged',
+  )
+
+  const timeline = render('')
+  const buttons = [...timeline.container.querySelectorAll('.milestone__btn')]
+  ok(buttons.length === 4, 'all four milestones are present')
+
+  for (const button of buttons) {
+    const org = button.querySelector('.milestone__org')
+    const role = button.querySelector('.milestone__role')
+    const label = org?.textContent ?? '?'
+
+    ok(Boolean(org && role), `${label}: org and role are separate elements`)
+    ok(
+      org.nextElementSibling === role,
+      `${label}: role is the immediate sibling of the company name`,
+    )
+    ok(
+      (org.textContent ?? '').length > 1 && (role.textContent ?? '').length > 1,
+      `${label}: both lines carry real text`,
+    )
+    // The separation must come from layout, never from a pasted-in space.
+    ok(
+      !/^\s/.test(role.textContent ?? '') && !/\s$/.test(org.textContent ?? ''),
+      `${label}: no manual whitespace was injected into the text`,
+    )
+  }
+}
+
 section('Pointer layer capability gating')
 
 {

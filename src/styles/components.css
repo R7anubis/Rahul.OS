@@ -1395,13 +1395,26 @@
   background: var(--accent);
 }
 
+/* Company name and role sit on separate lines, as they do everywhere else on
+   the site (detail-panel__title + role, project-card__title + subtitle,
+   edu__degree + edu__school).
+
+   Both are <span>s, so they must be told to be block-level: as inline boxes they
+   share one line, and the newline between them in the JSX is stripped, so they
+   render as "Rockstar Games IndiaAssociate QA – Technical" with nothing in
+   between. The margin-top below is likewise inert on an inline box — this is
+   what makes the declared spacing take effect. It also keeps long role strings
+   like "Technical and Community Manager (intern)" readable at 360px, where each
+   line gets the full column width instead of fighting for one. */
 .milestone__org {
+  display: block;
   font-size: var(--fs-h4);
   font-weight: 500;
   letter-spacing: -0.015em;
   color: var(--text);
 }
 .milestone__role {
+  display: block;
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
   letter-spacing: 0.07em;
