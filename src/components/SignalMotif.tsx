@@ -1,81 +1,108 @@
 /**
- * Hero motif: concentric instrumentation rings, radial spokes, a signal trace
- * crossing the field and a handful of nodes. Deterministic SVG — no random
- * numbers, no canvas, no telemetry pretence. Motion is a slow dash trace and a
- * subtle node opacity pulse, both switched off when motion is disabled.
+ * Hero motif: an instrument dial drawn around the portrait.
+ *
+ * The drawing is centred on the portrait plate and sized from it (the CSS box
+ * is a fixed multiple of the plate's width), so the arcs clear the plate's
+ * corners at every breakpoint and stay in register with the photograph. Three
+ * concentric arcs sit in the band above and beside the plate, crossed by radial
+ * ticks, carrying a few nodes and one dashed accent sweep. The part of each arc
+ * that would fall behind the plate is drawn behind it, so the plate's border
+ * and corner ticks stay unbroken.
+ *
+ * Deterministic SVG — no random numbers, no canvas, no telemetry pretence.
+ * Motion is the slow dash sweep and a node opacity pulse, both switched off
+ * with the motion toggle.
  */
-export function SignalMotif() {
-  const centre = 380
-  const rings = [120, 200, 280]
-  const spokes = Array.from({ length: 12 }, (_, index) => (index * 360) / 12)
+const CENTRE = 400
+/** Arc radii, in viewBox units. The portrait plate occupies ±182 × ±237. */
+const ARCS = [262, 283, 304] as const
+/** The middle arc carries the ticks and the accent sweep. */
+const ARC_MID = 283
+const SWEEP_FROM = 150
+const SWEEP_TO = 390
+/** Tick angles across the sweep — 30° apart, ends included. */
+const TICKS = Array.from({ length: 9 }, (_, index) => SWEEP_FROM + index * ((SWEEP_TO - SWEEP_FROM) / 8))
 
-  // Node positions sit where the trace crosses a ring — hand-placed, stable.
-  const nodes: [number, number][] = [
-    [380, 100],
-    [520, 200],
-    [660, 380],
-    [520, 560],
-    [380, 660],
-    [240, 560],
-    [100, 380],
-    [240, 200],
+const polar = (radius: number, degrees: number): [number, number] => {
+  const radians = (degrees * Math.PI) / 180
+  return [
+    CENTRE + radius * Math.cos(radians),
+    CENTRE + radius * Math.sin(radians),
   ]
+}
 
+const arcPath = (radius: number) => {
+  const [x1, y1] = polar(radius, SWEEP_FROM)
+  const [x2, y2] = polar(radius, SWEEP_TO)
+  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${radius} ${radius} 0 1 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`
+}
+
+/** Nodes sit on an arc, at the angle given — hand-placed, stable. */
+const NODES: { radius: number; angle: number; accent?: boolean }[] = [
+  { radius: 304, angle: 300, accent: true },
+  { radius: 262, angle: 202 },
+  { radius: 283, angle: 246 },
+  { radius: 304, angle: 336 },
+  { radius: 283, angle: 384 },
+  { radius: 262, angle: 168 },
+]
+
+export function SignalMotif() {
   return (
     <div className="motif" aria-hidden="true">
-      <svg viewBox="0 0 760 760" role="presentation" focusable="false">
-        {rings.map((r) => (
-          <circle
-            key={r}
-            cx={centre}
-            cy={centre}
-            r={r}
+      <svg viewBox="0 0 800 800" role="presentation" focusable="false">
+        {ARCS.map((radius) => (
+          <path
+            key={radius}
+            className="motif__arc"
+            d={arcPath(radius)}
             fill="none"
-            stroke="var(--line)"
-            strokeWidth="1"
           />
         ))}
 
-        {spokes.map((angle) => {
-          const rad = (angle * Math.PI) / 180
+        {TICKS.map((angle) => {
+          const [x1, y1] = polar(ARC_MID - 18, angle)
+          const [x2, y2] = polar(ARC_MID + 16, angle)
           return (
             <line
-              key={angle}
-              x1={centre}
-              y1={centre}
-              x2={centre + Math.cos(rad) * 280}
-              y2={centre + Math.sin(rad) * 280}
-              stroke="var(--line-soft)"
-              strokeWidth="1"
+              key={`tick-${angle}`}
+              className="motif__tick"
+              x1={x1.toFixed(2)}
+              y1={y1.toFixed(2)}
+              x2={x2.toFixed(2)}
+              y2={y2.toFixed(2)}
             />
           )
         })}
 
-        <polyline
-          className="motif__trace"
-          points="40,470 150,470 200,360 250,470 330,470 380,240 430,470 520,470 570,330 620,470 720,470"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.25"
-          opacity="0.65"
-        />
+        {/* One dashed accent sweep on the middle ring — the signal, not a spinner. */}
+        <path className="motif__trace" d={arcPath(ARC_MID)} pathLength={100} strokeDasharray="8 22" fill="none" />
 
-        {nodes.map(([x, y], index) => (
-          <g key={`${x}-${y}`}>
-            <circle
-              className="motif__node"
-              cx={x}
-              cy={y}
-              r={index === 3 ? 5 : 3}
-              fill={index === 3 ? 'var(--accent)' : 'var(--text-dim)'}
-            />
-            {index === 3 ? (
-              <circle cx={x} cy={y} r="13" fill="none" stroke="var(--accent)" strokeWidth="1" opacity="0.5" />
-            ) : null}
-          </g>
-        ))}
-
-        <rect x="6" y="6" width="748" height="748" fill="none" stroke="var(--line-soft)" strokeWidth="1" />
+        {NODES.map(({ radius, angle, accent }) => {
+          const [x, y] = polar(radius, angle)
+          return (
+            <g key={`node-${radius}-${angle}`}>
+              <circle
+                className="motif__node"
+                cx={x.toFixed(2)}
+                cy={y.toFixed(2)}
+                r={accent ? 4.5 : 2.6}
+                fill={accent ? 'var(--accent)' : 'var(--text-dim)'}
+              />
+              {accent ? (
+                <circle
+                  cx={x.toFixed(2)}
+                  cy={y.toFixed(2)}
+                  r="13"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1"
+                  opacity="0.5"
+                />
+              ) : null}
+            </g>
+          )
+        })}
       </svg>
     </div>
   )

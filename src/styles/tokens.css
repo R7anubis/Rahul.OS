@@ -93,10 +93,16 @@
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* ---- chrome metrics -------------------------------------------------- */
+  /* Header bar height: the sheet's top edge is pinned to it, so both come from
+     one number. */
+  --header-h: 64px;
+
   /* ---- layers ---------------------------------------------------------- */
   --z-grid: 0;
   --z-base: 1;
   --z-header: 40;
+  --z-sheet: 35;
   --z-dialog: 90;
   --z-skip: 100;
 }

@@ -72,7 +72,6 @@ export interface Project {
   figure: FigureKind
   figureCaption: string
   /** true when the card should span two columns in the grid */
-  wide?: boolean
   /** true for the entry that is a description of a job rather than a project */
   caseStudy?: boolean
   sections: ProjectSection[]
@@ -408,7 +407,6 @@ export const projects: Project[] = [
     technologies: ['Technical QA', 'Functional testing', 'Regression testing', 'Defect reproduction', 'Stability & performance profiling'],
     figure: 'qa-performance',
     figureCaption: 'Performance profile — original illustration',
-    wide: true,
     caseStudy: true,
     sections: [
       {

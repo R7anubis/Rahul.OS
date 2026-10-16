@@ -32,12 +32,11 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
       <div className="hero__bg">
         <span className="dot-field" />
         <PointerGrid motionEnabled={motionEnabled} />
-        <SignalMotif />
       </div>
 
       <div className="hero__inner shell">
         <div className="hero__grid">
-          <div>
+          <div className="hero__copy">
             <div className="hero__meta">
               <span className="mono dim" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <MapPin size={13} aria-hidden="true" />
@@ -88,44 +87,49 @@ export function Hero({ onNavigate, motionEnabled }: HeroProps) {
             </div>
           </div>
 
-          <div>
-            <figure className="portrait">
-              <span className="portrait__tick portrait__tick--tl" aria-hidden="true" />
-              <span className="portrait__tick portrait__tick--br" aria-hidden="true" />
-              <div className="portrait__frame">
-                {/* Dark theme shows the duotone print; light theme the neutral one. */}
-                <img
-                  className="portrait__img portrait__img--duotone"
-                  src={asset('images/portrait-duotone-960.jpg')}
-                  srcSet={DUOTONE_SRCSET}
-                  sizes="(min-width: 1024px) 30rem, 100vw"
-                  width={960}
-                  height={1214}
-                  alt=""
-                  aria-hidden="true"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-                <img
-                  className="portrait__img portrait__img--natural"
-                  src={PORTRAIT_SRC}
-                  srcSet={PORTRAIT_SRCSET}
-                  sizes="(min-width: 1024px) 30rem, 100vw"
-                  width={960}
-                  height={1214}
-                  alt="Portrait photograph of Rahul Raj, monochrome treatment"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-                <span className="portrait__texture dot-field dot-field--dense" aria-hidden="true" />
-              </div>
-              <figcaption className="portrait__caption">
-                <span>
-                  FIG.01 · <b>{profile.name}</b>
-                </span>
-                <span>{profile.locationShort}</span>
-              </figcaption>
-            </figure>
+          <div className="hero__visual">
+            {/* The dial is drawn from the portrait's own box, so it stays in
+                register with the plate at every width. */}
+            <div className="portrait-slot">
+              <SignalMotif />
+              <figure className="portrait">
+                <span className="portrait__tick portrait__tick--tl" aria-hidden="true" />
+                <span className="portrait__tick portrait__tick--br" aria-hidden="true" />
+                <div className="portrait__frame">
+                  {/* Dark theme shows the duotone print; light theme the neutral one. */}
+                  <img
+                    className="portrait__img portrait__img--duotone"
+                    src={asset('images/portrait-duotone-960.jpg')}
+                    srcSet={DUOTONE_SRCSET}
+                    sizes="(min-width: 1024px) 30rem, 100vw"
+                    width={960}
+                    height={1214}
+                    alt=""
+                    aria-hidden="true"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                  <img
+                    className="portrait__img portrait__img--natural"
+                    src={PORTRAIT_SRC}
+                    srcSet={PORTRAIT_SRCSET}
+                    sizes="(min-width: 1024px) 30rem, 100vw"
+                    width={960}
+                    height={1214}
+                    alt="Portrait photograph of Rahul Raj, monochrome treatment"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                  <span className="portrait__texture dot-field dot-field--dense" aria-hidden="true" />
+                </div>
+                <figcaption className="portrait__caption">
+                  <span>
+                    FIG.01 · <b>{profile.name}</b>
+                  </span>
+                  <span>{profile.locationShort}</span>
+                </figcaption>
+              </figure>
+            </div>
 
             <div className="portrait__aside">
               <dl className="mini-readout">

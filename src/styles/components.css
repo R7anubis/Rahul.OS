@@ -192,7 +192,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
-  min-height: 62px;
+  /* Bar height minus the 1px border and the 1px progress line. */
+  min-height: calc(var(--header-h) - 2px);
 }
 .brand {
   display: inline-flex;
@@ -374,11 +375,22 @@
   }
 }
 
-/* Mobile navigation sheet */
+/* Mobile navigation sheet
+   A full-height sheet pinned under the header bar: the page behind it is never
+   revealed or overlapped, and it scrolls on its own when a short viewport
+   cannot show every row. */
 .mobile-nav {
-  border-bottom: 1px solid var(--line);
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sheet);
   background: var(--bg-raised);
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(var(--sp-5), env(safe-area-inset-bottom));
 }
 .mobile-nav__list {
   display: grid;
@@ -404,8 +416,23 @@
 .mobile-nav__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   padding-top: var(--sp-5);
+}
+@media (max-width: 430px) {
+  /* Two even columns, with the email action given the full width underneath:
+     nothing is squeezed or clipped on the narrowest phones. */
+  .mobile-nav__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mobile-nav__actions > :last-child {
+    grid-column: 1 / -1;
+  }
+  .mobile-nav__actions .btn {
+    justify-content: center;
+    min-height: 44px;
+  }
 }
 @media (min-width: 1024px) {
   .mobile-nav {
@@ -498,6 +525,18 @@
   display: grid;
   gap: clamp(1.75rem, 4vw, 3rem);
 }
+/* Stacking inside the hero: dial (0) → portrait plate (1) → copy (2). */
+.hero__copy {
+  position: relative;
+  z-index: 2;
+}
+.hero__visual {
+  position: relative;
+}
+.portrait-slot {
+  position: relative;
+  max-width: 30rem;
+}
 @media (min-width: 1024px) {
   .hero__grid {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
@@ -569,6 +608,7 @@
 /* portrait */
 .portrait {
   position: relative;
+  z-index: 1;
   border: 1px solid var(--line);
   background: var(--bg-raised);
   padding: 0.6rem;
@@ -714,27 +754,39 @@
   flex: none;
 }
 
-/* signal motif */
+/* signal motif — the dial is centred on the portrait plate and sized from it
+   (220% of the plate's width), so the arcs clear its corners at every width and
+   stay in register with the photograph. The plate paints above the dial, which
+   is why the arcs read as sitting behind the portrait. */
 .motif {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  width: 220%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
   z-index: 0;
   pointer-events: none;
-  overflow: hidden;
 }
 .motif svg {
-  position: absolute;
-  right: -8%;
-  top: -12%;
-  width: min(760px, 78vw);
-  height: auto;
-  opacity: 0.6;
+  width: 100%;
+  height: 100%;
+  opacity: 0.62;
 }
-@media (max-width: 640px) {
-  .motif svg {
-    opacity: 0.4;
-    right: -32%;
-    top: -4%;
+.motif__arc {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.motif__tick {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+/* Below 1024px the copy sits directly above the portrait, so a dial large
+   enough to clear the plate would run through the text: the illustration is a
+   wide-screen composition. */
+@media (max-width: 1023px) {
+  .motif {
+    display: none;
   }
 }
 .motif__node {
@@ -935,11 +987,12 @@
   border-color: var(--accent);
 }
 
+/* Four even tracks on wide screens: four cards fill one row exactly, so no
+   column is left empty and every card is the same width. */
 .project-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
 }
 @media (min-width: 720px) {
   .project-grid {
@@ -950,15 +1003,16 @@
   .project-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .project-card--wide {
-    grid-column: span 2;
-  }
 }
 .project-card {
   position: relative;
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
+  /* The grid rules are the cards' own hairlines rather than the container's
+     background, so filtering down to one result leaves no filled block where
+     the empty tracks are. */
+  box-shadow: 0 0 0 1px var(--line);
   transition: background-color var(--dur-2) var(--ease);
 }
 .project-card:hover {
@@ -977,9 +1031,6 @@
 }
 /* Every figure is drawn on an 800×500 (16:10) viewBox, so the card frame keeps
    the same ratio at every width — a 16:9 frame would letterbox the diagrams. */
-.project-card--wide .project-card__figure {
-  aspect-ratio: 16 / 10;
-}
 .project-card__index {
   position: absolute;
   top: 0.6rem;
@@ -999,11 +1050,19 @@
   padding: clamp(1rem, 2vw, 1.4rem);
   flex: 1;
 }
+/* Category label over status pill, on every card. Sharing one line made the
+   long pills wrap mid-label, so the four cards in a row started their titles at
+   different heights; stacked, the headers match. */
 .project-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--sp-2);
+}
+.project-card__top .chip {
+  white-space: nowrap;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
 }
 .project-card__title {
   font-size: var(--fs-h3);
@@ -1030,7 +1089,9 @@
 }
 .project-card__footer {
   display: flex;
-  align-items: center;
+  /* Bottom-aligned: the role label wraps to a different number of lines per
+     card, and this keeps the "Details" link on the same line across the row. */
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--sp-3);
   padding-top: var(--sp-3);
@@ -1750,6 +1811,9 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  /* The canvas is decorative and only reproduces the button positions: if it
+     took pointer events it would swallow every tap on the nodes underneath. */
+  pointer-events: none;
 }
 .imap__edge {
   stroke: var(--line-strong);
@@ -1771,7 +1835,10 @@
 }
 .imap__nodebutton {
   position: absolute;
+  left: var(--imap-x);
+  top: var(--imap-y);
   transform: translate(-50%, -50%);
+  touch-action: manipulation;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -2507,39 +2574,22 @@
    Interest map on narrow screens
    --------------------------------------------------------------------------
    The packed canvas needs width to keep six labels readable, so rather than
-   hiding the diagram the nodes reflow into a column (same six nodes, same six
-   connections) and the edges become a rail: a vertical spine on the left with
-   a stub into each node it connects to. Row height is published from the
-   component as --imap-row, so the rail geometry and the layout cannot drift.
+   hiding the diagram the nodes sit on a hexagon (same six nodes, same six
+   connections) drawn on a square canvas. The ring order lives in the component
+   as MOBILE_ORDER, and each button publishes both its packed and its
+   ring position, so the two layouts cannot drift apart.
    -------------------------------------------------------------------------- */
 .imap__svg--mobile {
   display: none;
 }
-.imap__rail path,
-.imap__rail circle {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-  transition: stroke var(--dur-2) var(--ease);
-}
-.imap__rail circle {
-  fill: var(--line-strong);
-  stroke: none;
-}
-.imap__rail--active path {
-  stroke: var(--accent);
-}
-.imap__rail--active circle {
-  fill: var(--accent);
-}
 
 @media (max-width: 767px) {
+  /* Six nodes on a hexagon: every label stays legible, every connection is a
+     line you can follow, and the whole map fits a square canvas — no column of
+     stacked rows, no scrolling to read it. */
   .imap__canvas {
-    display: flex;
-    flex-direction: column;
-    aspect-ratio: auto;
-    height: calc(var(--imap-rows, 6) * var(--imap-row, 56px));
+    display: block;
+    aspect-ratio: 1 / 1;
   }
   .imap__svg--packed {
     display: none;
@@ -2548,19 +2598,22 @@
     display: block;
   }
   .imap__nodebutton {
-    position: static;
-    transform: none;
-    flex: 1 1 0;
-    min-height: 0;
-    margin-left: 26%;
-    justify-content: flex-start;
+    left: var(--imap-ring-x);
+    top: var(--imap-ring-y);
+    min-height: 44px;
+    padding: 0.35rem 0.5rem;
+    gap: 0.35rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
     white-space: nowrap;
     background: color-mix(in srgb, var(--bg) 88%, transparent);
   }
-  .imap__nodebutton:hover,
-  .imap__nodebutton:focus-visible {
-    position: relative;
-    z-index: 1;
+  .imap__index-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .imap__index-item {
+    padding: 0.65rem 0.7rem;
+    gap: 0.5rem;
   }
 }
 
