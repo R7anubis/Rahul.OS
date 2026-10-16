@@ -954,8 +954,10 @@
   width: 100%;
   height: 100%;
 }
+/* Every figure is drawn on an 800×500 (16:10) viewBox, so the card frame keeps
+   the same ratio at every width — a 16:9 frame would letterbox the diagrams. */
 .project-card--wide .project-card__figure {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
 }
 .project-card__index {
   position: absolute;
@@ -1344,6 +1346,23 @@
   position: relative;
   border-bottom: 1px solid var(--line-soft);
 }
+/* Continuous rail: the line spans each row and the opaque node sits on top of
+   it, so the connector stays exactly aligned however the rows wrap or grow. */
+.milestone::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+.milestone:first-child::before {
+  top: 50%;
+}
+.milestone:last-child::before {
+  bottom: 50%;
+}
 .milestone__btn {
   width: 100%;
   display: grid;
@@ -1363,6 +1382,7 @@
 }
 .milestone__node {
   position: relative;
+  z-index: 1;
   width: 11px;
   height: 11px;
   flex: none;
@@ -1374,19 +1394,7 @@
   border-color: var(--accent);
   background: var(--accent);
 }
-.milestone__node::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 100%;
-  width: 1px;
-  height: calc(100% + 2.05rem);
-  background: var(--line);
-  transform: translateX(-50%);
-}
-.milestone:last-child .milestone__node::after {
-  display: none;
-}
+
 .milestone__org {
   font-size: var(--fs-h4);
   font-weight: 500;
@@ -2196,13 +2204,6 @@
   overflow-y: auto;
   padding: var(--sp-2) 0 var(--sp-3);
   overscroll-behavior: contain;
-}
-.palette__group-label {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: 0.7rem 0.9rem 0.35rem;
-  color: var(--text-faint);
 }
 .palette__list {
   display: grid;

@@ -2,6 +2,7 @@ import { ArrowUpRight } from 'lucide-react'
 import type { Project } from '../data/projects'
 import { categoryLabel } from '../data/projects'
 import { ProjectFigure } from './figures'
+import { statusChipClass } from '../lib/status'
 
 interface ProjectCardProps {
   project: Project
@@ -10,8 +11,6 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, index, onOpen }: ProjectCardProps) {
-  const isConcept = project.statusKind !== 'student-project'
-
   return (
     <article className={`project-card card-enter${project.wide ? ' project-card--wide' : ''}`}>
       <div className="project-card__figure">
@@ -24,7 +23,7 @@ export function ProjectCard({ project, index, onOpen }: ProjectCardProps) {
       <div className="project-card__body">
         <div className="project-card__top">
           <span className="mono faint">{categoryLabel[project.category]}</span>
-          <span className={`chip${project.statusKind === 'student-project' ? ' chip--ok' : isConcept ? ' chip--concept' : ''}`}>
+          <span className={statusChipClass(project.statusKind)}>
             <span className="chip__dot" aria-hidden="true" />
             {project.statusLabel}
           </span>

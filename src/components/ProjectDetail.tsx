@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowUpRight, Info } from 'lucide-react'
 import { categoryLabel, projects, type Project } from '../data/projects'
 import { ProjectFigure } from './figures'
+import { statusChipClass } from '../lib/status'
 
 interface ProjectDetailProps {
   project: Project
@@ -47,7 +48,7 @@ export function ProjectDetail({ project, onNavigate }: ProjectDetailProps) {
           <p className="detail__lede">{project.lede}</p>
 
           <div className="detail__badges">
-            <span className={`chip${project.statusKind === 'student-project' ? ' chip--ok' : ' chip--concept'}`}>
+            <span className={statusChipClass(project.statusKind)}>
               <span className="chip__dot" aria-hidden="true" />
               {project.statusLabel}
             </span>
