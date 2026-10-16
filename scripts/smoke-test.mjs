@@ -1468,8 +1468,101 @@ section('Interest map: mobile reflow')
     /interestEdges\.map/.test(map) && (map.match(/interestEdges\.map/g) || []).length === 2,
     'all six connections are drawn in both the packed and rail layouts',
   )
-  ok(/preserveAspectRatio="none"/.test(map), 'the rail SVG scales without distorting its strokes')
+  ok(/preserveAspectRatio="none"/.test(map), 'the hexagon SVG scales without distorting its strokes')
   ok(!/display:\s*none[^}]*imap__nodebutton/.test(css), 'no node is hidden on small screens')
+
+  // The decorative canvas sits exactly on top of the buttons: if it took
+  // pointer events it would swallow every tap meant for a node.
+  const svgRule = css.slice(css.indexOf('.imap__svg {'), css.indexOf('.imap__svg--mobile'))
+  ok(/pointer-events:\s*none/.test(svgRule), 'the interest-map canvas cannot intercept taps')
+  ok(
+    /touch-action:\s*manipulation/.test(css.slice(css.indexOf('.imap__nodebutton {'))),
+    'node buttons declare touch-action so a tap is not read as a gesture',
+  )
+  {
+    const globalCss = readFileSync(path.join(root, 'src/styles/global.css'), 'utf8')
+    const focusRule = globalCss.slice(globalCss.indexOf(':focus-visible'))
+    ok(
+      /outline[^;]*var\(--focus\)/.test(focusRule),
+      'a global :focus-visible outline covers the node buttons',
+    )
+  }
+  ok(
+    /--imap-ring-x/.test(map) && /--imap-ring-y/.test(map),
+    'each button publishes its ring position for the narrow-screen layout',
+  )
+}
+
+section('Layout guards: hero dial, project grid, mobile sheet')
+
+{
+  const css = readFileSync(path.join(root, 'src/styles/components.css'), 'utf8')
+  const tokens = readFileSync(path.join(root, 'src/styles/tokens.css'), 'utf8')
+  const header = readFileSync(path.join(root, 'src/components/Header.tsx'), 'utf8')
+  const hero = readFileSync(path.join(root, 'src/components/Hero.tsx'), 'utf8')
+  const motif = readFileSync(path.join(root, 'src/components/SignalMotif.tsx'), 'utf8')
+  const grid = readFileSync(path.join(root, 'src/components/ProjectGrid.tsx'), 'utf8')
+  const projects = readFileSync(path.join(root, 'src/data/projects.ts'), 'utf8')
+  const card = readFileSync(path.join(root, 'src/components/ProjectCard.tsx'), 'utf8')
+
+  // --- hero dial: drawn from the portrait's own box, behind the plate ---
+  ok(
+    /portrait-slot/.test(hero) && /\.portrait-slot\s*\{[^}]*position:\s*relative/.test(css),
+    'the dial is drawn from the portrait slot anchored on the plate',
+  )
+  ok(
+    /\.motif\s*\{[^}]*left:\s*50%;[^}]*translate\(-50%,\s?-50%\)/.test(css),
+    'the dial is centred on that slot rather than pinned to the viewport edge',
+  )
+  ok(/width:\s*220%/.test(css), 'the dial is sized from the plate, not in fixed pixels')
+  ok(
+    /\.portrait\s*\{[^}]*z-index:\s*1/.test(css) && /\.hero__copy\s*\{[^}]*z-index:\s*2/.test(css),
+    'stacking is dial below plate below copy',
+  )
+  ok(/@media \(max-width: 1023px\)[\s\S]{0,200}\.motif\s*\{[^}]*display:\s*none/.test(css), 'the dial is a wide-screen composition and is not drawn when the copy stacks above the plate')
+  ok(!/viewBox="0 0 760 760"/.test(motif), 'the old dial geometry is gone')
+
+  // --- project grid: four even tracks, no spanning card ---
+  ok(
+    /\.project-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/.test(css),
+    'a single narrow column below 720px',
+  )
+  ok(/@media \(min-width: 1280px\)[\s\S]{0,120}repeat\(4, minmax\(0, 1fr\)\)/.test(css), 'four even tracks on wide screens')
+  ok(!/project-card--wide/.test(css + card + projects + grid), 'no card spans extra tracks any more')
+  ok(!/\bwide:\s*true/.test(projects), 'the data no longer carries a wide flag')
+  ok(
+    /\.project-card\s*\{[^}]*box-shadow:\s*0 0 0 1px var\(--line\)/.test(css),
+    'grid rules are the cards\' own hairlines, so a filtered grid leaves no filled block',
+  )
+
+  // --- mobile sheet: an overlay pinned under the header, with a scroll lock ---
+  ok(
+    /\.mobile-nav\s*\{[^}]*position:\s*fixed/.test(css),
+    'the compact sheet is positioned against the viewport, not the header box',
+  )
+  ok(/top:\s*var\(--header-h\)/.test(css) && /--header-h:/.test(tokens), 'the sheet is pinned to a shared header height')
+  ok(/--z-sheet:/.test(tokens) && /z-index:\s*var\(--z-sheet\)/.test(css), 'the sheet has its own layer below the header')
+  ok(
+    /root\.style\.overflow = 'hidden'/.test(header) && /root\.style\.overflow = previousOverflow/.test(header),
+    'opening the sheet locks the page and closing restores it exactly',
+  )
+  {
+    const headerStart = header.indexOf('<header className="site-header">')
+    const headerEnd = header.indexOf('</header>', headerStart)
+    const headerElement = header.slice(headerStart, headerEnd)
+    ok(
+      headerStart > -1 && !headerElement.includes('className="mobile-nav"'),
+      'the sheet is rendered outside the sticky header',
+    )
+  }
+  ok(
+    /linkById\('email'\)/.test(header),
+    'the sheet\'s email action resolves the verified link rather than an array position',
+  )
+  ok(
+    /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/.test(css.slice(css.indexOf('.mobile-nav__actions'))),
+    'the three actions stack on the narrowest phones instead of cramming into one row',
+  )
 }
 
 section('Pointer layer capability gating')

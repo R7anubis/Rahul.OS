@@ -283,16 +283,36 @@ compete with them.
   individually instead of repainting the canvas, and device pixel ratio is capped
   at 2. A missing 2D context disables the effect rather than throwing.
 
+### The hero dial
+
+`SignalMotif.tsx` draws the instrument dial *from the portrait's own box*: the dial
+is a fixed 220% of the plate's width and is centred on it, which puts its arcs clear
+of the plate's corners and keeps it in register with the photograph at every width.
+The stacking inside the hero is dial (0) → plate (1) → copy (2), so the arcs cross
+behind the photograph rather than over it, and the plate's border and corner ticks
+stay unbroken. Below 1024px the copy sits directly above the portrait, so a dial
+large enough to clear the plate would run through the text: the illustration is a
+wide-screen composition and is not drawn there.
+
+### The project grid
+
+Four entries, four even tracks from 1280px up, two from 720px and one below that:
+every row is full and every card is the same width, so no column is left empty. The
+1px rules are the cards' own hairlines (`box-shadow`) rather than the container's
+background, so filtering down to a single result leaves no filled block where the
+empty tracks are. The category label sits above the status pill on every card, so
+the four headers match, and the footer is bottom-aligned so the "Details" links line
+up across the row.
+
 ### The interest map on narrow screens
 
-The packed six-node canvas needs width. Rather than hiding it below 768px, the
-nodes reflow into a column and the edges become a rail — a spine on the left with a
-stub into each node it connects to. The narrow-screen order
-(`MOBILE_ORDER` in `InterestMap.tsx`) is chosen so five of the six connections join
-neighbouring rows; only AI/ML–Software spans a gap. Row height is published from the
-component as `--imap-row`, so the rail geometry and the layout cannot drift apart.
-The buttons stay in data order in the DOM — `order` moves them visually only — so
-screen readers still get the documented order.
+The packed six-node canvas needs width. Rather than hiding it below 768px, the six
+nodes sit on a hexagon in a square canvas, with the same six connections drawn
+between them: five join neighbouring vertices and AI/ML–Software becomes one chord,
+so the whole network stays readable without a column of stacked rows. The ring order
+is `MOBILE_ORDER` in `InterestMap.tsx`, and each button publishes its packed
+position and its ring position as custom properties, so the two layouts cannot drift
+apart and the buttons stay in data order in the DOM for screen readers.
 
 ## Accessibility
 
@@ -417,7 +437,8 @@ This does not test mocks. It boots the **real Vite pipeline**, renders the real
     `data-cursor`) are asserted against the source and stylesheet, because jsdom
     has neither a canvas nor a layout engine.
 13. **Interest map reflow** — the pack is no longer hidden on small screens, the
-    rail rendering exists, and both layouts draw all six connections.
+    hexagon rendering exists, the decorative SVG cannot take pointer events, and
+    both layouts draw all six connections.
 14. **Reactive grid coverage and alignment** — the pitch token is 12px and both
     the static and reactive layers consume it; the reactive layer shares the
     static grid's phase; no per-section pitch overrides have come back; the five
@@ -482,9 +503,9 @@ real browser before publishing:
 5. **Reveal timing** — scroll the full page and confirm sections reveal as they
    enter without feeling sluggish or like content is playing catch-up.
 6. **Responsive widths** — 320, 375, 390, 430, 768 and 1024px, plus 1600px and a
-   desktop width. Two things specifically need eyes: the interest map's rail layout
-   below 768px (the stubs should meet each node's left edge, and no label should
-   clip or overlap), and the diagram explorer, which stacks below 1180px.
+   desktop width. Two things specifically need eyes: the interest map's hexagon
+   below 768px (all six pills inside the canvas, no clipping or overlap, edges
+   legible between them) and the diagram explorer, which stacks below 1180px.
 7. **Hybrid devices** — a touchscreen laptop should start with no custom cursor
    after the first touch, and restore it if you return to the trackpad.
 8. **Screen reader pass** — VoiceOver or NVDA over the diagram explorer, the
@@ -518,11 +539,17 @@ real browser before publishing:
    card, timeline panel or the terminal. They should be visible only in open
    background.
 
+15. **Mobile sheet** — open it on a phone at 320–430px: the three actions should sit
+    on their own rows with nothing clipped, the page behind must not scroll (try a
+    swipe, the wheel and Page Down), Escape or the close button must hand scrolling
+    back where it was, and Search site, Motion and Email must all work.
+
 Responsive targets designed for: **≥1600px** large desktop, **1280–1440px**
 laptop, **768–1023px** tablet, **≤767px** mobile (with 320px as the floor). The
-navigation collapses to the compact sheet below 1024px; the interest map reflows
-from its packed canvas to the rail column below 768px, and the snake is not mounted
-at all below 480px or without a fine pointer.
+navigation collapses to the compact sheet below 1024px — a full-height overlay
+pinned under the header bar, with the page behind it locked; the interest map
+reflows from its packed canvas to the hexagon below 768px, and the snake is not
+mounted at all below 480px or without a fine pointer.
 
 ---
 

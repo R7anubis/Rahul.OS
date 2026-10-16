@@ -10,14 +10,14 @@ interface InterestMapProps {
 }
 
 /**
- * Narrow-screen order for the same six nodes.
+ * Narrow-screen ring order for the same six nodes.
  *
- * The packed canvas needs width to keep six labels legible, so on small
- * screens the nodes reflow into a column and the edges are drawn as a rail
- * instead of being hidden. This order is chosen so five of the six connections
- * join neighbouring rows; only AI/ML–Software has to span a gap. The list below
- * the map keeps the data order, and the buttons stay in data order in the DOM —
- * `order` only moves them visually.
+ * The packed canvas needs width to keep six labels legible, so on small screens
+ * the nodes sit on a hexagon instead of being squeezed. This order is the ring
+ * order, chosen so five of the six connections join neighbouring vertices and
+ * the sixth becomes a single chord: the whole network fits a square canvas
+ * about as tall as it is wide. The buttons stay in data order in the DOM, and
+ * only the positions are published per layout.
  */
 const MOBILE_ORDER = [
   'data-science',
@@ -27,9 +27,8 @@ const MOBILE_ORDER = [
   'gaming',
   'software',
 ] as const
-const ROW_PX = 56
-const RAIL_END = 26
-const RAIL_START = 7
+/** Hexagon radius, as a percentage of the square narrow-screen canvas. */
+const RING_RADIUS = 34
 
 /**
  * Connected-node interest map.
@@ -53,12 +52,20 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
 
   const byId = (id: string) => interestNodes.find((node) => node.id === id)
 
-  const mobileIndex = (id: string) => {
+  /**
+   * Ring position of a node, as a percentage of the canvas, for the compact
+   * narrow-screen layout. Same six nodes, same six edges — only the geometry
+   * changes, and it is derived from the declared ring order.
+   */
+  const ringPoint = (id: string) => {
     const index = MOBILE_ORDER.indexOf(id as (typeof MOBILE_ORDER)[number])
-    return index < 0 ? MOBILE_ORDER.length : index
+    const step = index < 0 ? MOBILE_ORDER.length : index
+    const angle = ((-90 + step * (360 / MOBILE_ORDER.length)) * Math.PI) / 180
+    return {
+      x: 50 + RING_RADIUS * Math.cos(angle),
+      y: 50 + RING_RADIUS * Math.sin(angle),
+    }
   }
-  /** Row centre in the mobile rail's own coordinate space (1 unit = 1px). */
-  const rowY = (id: string) => (mobileIndex(id) + 0.5) * ROW_PX
 
   const select = useCallback((id: string) => setSelectedId(id), [])
 
@@ -126,41 +133,43 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
               role="group"
               aria-label="Interest map — select a node. Arrow keys move between nodes."
               onKeyDown={onCanvasKeyDown}
-              style={
-                {
-                  '--imap-row': `${ROW_PX}px`,
-                  '--imap-rows': MOBILE_ORDER.length,
-                } as React.CSSProperties
-              }
             >
-              {/* Narrow screens: same nodes, same six connections, drawn as a
-                  rail so nothing is hidden and no label is squeezed. */}
+              {/* Narrow screens: the same six nodes and the same six
+                  connections, laid out on a hexagon so nothing is hidden and
+                  no label is squeezed. */}
               <svg
                 className="imap__svg imap__svg--mobile"
-                viewBox={`0 0 100 ${MOBILE_ORDER.length * ROW_PX}`}
+                viewBox="0 0 100 100"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
-                {interestEdges.map(([fromId, toId], lane) => {
-                  const y1 = rowY(fromId)
-                  const y2 = rowY(toId)
-                  const railX = RAIL_START + (lane % 4) * 3.6
+                {interestEdges.map(([fromId, toId]) => {
+                  const from = ringPoint(fromId)
+                  const to = ringPoint(toId)
                   const active = focusId === fromId || focusId === toId
                   return (
-                    <g
+                    <line
                       key={`m-${fromId}-${toId}`}
-                      className={`imap__rail${active ? ' imap__rail--active' : ''}`}
-                    >
-                      <path
-                        d={`M ${railX} ${y1} C ${railX - 3.4} ${y1 + (y2 - y1) * 0.4}, ${
-                          railX - 3.4
-                        } ${y1 + (y2 - y1) * 0.6}, ${railX} ${y2}`}
-                      />
-                      <path d={`M ${railX} ${y1} L ${RAIL_END} ${y1}`} />
-                      <path d={`M ${railX} ${y2} L ${RAIL_END} ${y2}`} />
-                      <circle cx={railX} cy={y1} r="1" />
-                      <circle cx={railX} cy={y2} r="1" />
-                    </g>
+                      className={`imap__edge${active ? ' imap__edge--active' : ''}`}
+                      x1={from.x}
+                      y1={from.y}
+                      x2={to.x}
+                      y2={to.y}
+                    />
+                  )
+                })}
+
+                {interestNodes.map((node) => {
+                  const point = ringPoint(node.id)
+                  return (
+                    <circle
+                      key={node.id}
+                      className="imap__halo"
+                      cx={point.x}
+                      cy={point.y}
+                      r="9"
+                      opacity={isLit(node.id) ? 1 : 0}
+                    />
                   )
                 })}
               </svg>
@@ -207,9 +216,10 @@ export function InterestMap({ onNavigate }: InterestMapProps) {
                   className="imap__nodebutton"
                   style={
                     {
-                      left: `${node.x}%`,
-                      top: `${node.y}%`,
-                      order: mobileIndex(node.id),
+                      '--imap-x': `${node.x}%`,
+                      '--imap-y': `${node.y}%`,
+                      '--imap-ring-x': `${ringPoint(node.id).x}%`,
+                      '--imap-ring-y': `${ringPoint(node.id).y}%`,
                     } as React.CSSProperties
                   }
                   aria-pressed={selected?.id === node.id}
