@@ -586,9 +586,12 @@ domain root or under a subdirectory.
 
 ### Canonical domain
 
-The canonical origin is currently the Vercel deployment,
-`https://rahul-os-ten.vercel.app`. It is declared in four places that must be
-changed together:
+The canonical origin is the registered custom domain,
+`https://r7anubis.is-a.dev`. Deployments remain reachable on the Vercel URL
+(`https://rahul-os-ten.vercel.app`), but no crawler-facing file points at it:
+that address is not advertised as canonical anywhere.
+
+The origin is declared in four places that must be changed together:
 
 | File | What to change |
 | --- | --- |

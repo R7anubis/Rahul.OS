@@ -1,8 +1,9 @@
 /**
  * Canonical origin for all absolute metadata.
  *
- * This is the registered custom domain. The Vercel deployment URL remains
- * available as a fallback, but canonical metadata should use this public origin.
+ * This is the registered custom domain. Nothing falls back to another origin:
+ * every absolute URL is built from this constant, so if the constant is wrong
+ * the metadata is wrong.
  *
  * If the canonical origin ever changes, it must change in four places
  * together — this file, `index.html`, `public/robots.txt` and
