@@ -1,16 +1,15 @@
 /**
  * Canonical origin for all absolute metadata.
  *
- * This is the current Vercel deployment. `rahulraj.dev` is deliberately not
- * used anywhere: it is not verified as owned or configured, and advertising an
- * unverified domain as canonical would be a false claim.
+ * This is the registered custom domain. The Vercel deployment URL remains
+ * available as a fallback, but canonical metadata should use this public origin.
  *
  * If the canonical origin ever changes, it must change in four places
  * together — this file, `index.html`, `public/robots.txt` and
  * `public/sitemap.xml`. The smoke test asserts that all four agree, so a
  * mismatch fails the build rather than shipping quietly.
  */
-export const SITE_URL = 'https://rahul-os-ten.vercel.app'
+export const SITE_URL = 'https://r7anubis.is-a.dev'
 
 /** Absolute URL for a site-relative path. */
 export const absoluteUrl = (path = '/'): string =>
