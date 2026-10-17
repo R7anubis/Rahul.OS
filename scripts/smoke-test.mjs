@@ -868,7 +868,7 @@ section('SEO and metadata consistency')
     return mod
   })()
 
-  const ORIGIN = 'https://rahul-os-ten.vercel.app'
+  const ORIGIN = 'https://r7anubis.is-a.dev'
   ok(meta.SITE_URL === ORIGIN, `canonical origin is the current deployment (${meta.SITE_URL})`)
 
   // The unverified domain must not appear anywhere a crawler would read it.
@@ -950,7 +950,7 @@ section('Document metadata follows the route')
   )
   ok(
     document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') ===
-      'https://rahul-os-ten.vercel.app/',
+      'https://r7anubis.is-a.dev/',
     'canonical stays on the document root for hash routes',
   )
 
